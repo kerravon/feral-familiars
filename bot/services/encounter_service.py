@@ -1,6 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
 from bot.models.encounter import Encounter, EncounterParticipant
+from bot.models.familiar import Familiar
+from bot.models.base import User
 from bot.services.inventory_service import InventoryService
 from bot.utils.constants import GameConstants
 from datetime import datetime, timedelta

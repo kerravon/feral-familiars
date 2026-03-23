@@ -27,7 +27,7 @@ Rarity determines the creation cost and the **success chance of Passive Effects*
   - **Expiration:** Encounters fade after a few seconds if not bound.
 
 ## 🟢 Active Familiars
-Equipping a familiar using `/equip` makes it your active companion. 
+Equipping a familiar using `/summon` makes it your active companion. 
 - **Stable Limit:** You can hold a maximum of **3** familiars.
 - **Passive Bonuses:**
   - **Base Familiars:** % Chance to **double** captured essences of the SAME type (e.g., Fire familiar doubles Fire essences).

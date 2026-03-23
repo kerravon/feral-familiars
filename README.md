@@ -37,7 +37,7 @@ A mystical Discord creature-collection game. Capture essences and spirits, perfo
     *   When an **Essence** appears, type `bind`.
     *   When a **Spirit** appears, type `bind spirit`.
 3.  **Ritual:** Use `/ritual spirit_id essence_type` to create your familiar.
-4.  **Stable:** Use `/familiars` to see your collection and `/equip` to set an active familiar.
+4.  **Stable:** Use `/familiars` to see your collection and `/summon` to set an active familiar.
 
 ## 🛠 Tech Stack
 - **Framework:** `discord.py`

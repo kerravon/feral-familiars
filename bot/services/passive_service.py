@@ -13,6 +13,38 @@ class PassiveService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    async def equip_familiar(session: AsyncSession, user_id: int, familiar_id: int):
+        """
+        Equips a familiar, ensuring only one is active at a time for the user.
+        Returns (success, result_message_or_familiar)
+        """
+        try:
+            # 1. Verify ownership and existence
+            stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
+            result = await session.execute(stmt)
+            familiar = result.scalar_one_or_none()
+            
+            if not familiar:
+                return False, "Familiar not found in your stable."
+
+            async with session.begin_nested():
+                # 2. Deactivate current active familiar(s)
+                await session.execute(
+                    update(Familiar)
+                    .where(Familiar.user_id == user_id, Familiar.is_active == True)
+                    .values(is_active=False)
+                )
+                
+                # 3. Activate new one
+                familiar.is_active = True
+            
+            await session.commit()
+            return True, familiar
+        except Exception as e:
+            await session.rollback()
+            return False, f"Error equipping familiar: {e}"
+
+    @staticmethod
     async def trigger_passive_bonus(session: AsyncSession, user_id: int, captured_type: str):
         familiar = await PassiveService.get_active_familiar(session, user_id)
         if not familiar:

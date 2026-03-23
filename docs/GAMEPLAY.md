@@ -34,6 +34,11 @@ Equipping a familiar using `/summon` makes it your active companion.
   - **Arcane Familiars:**
     - Higher % Chance (+15% flat) to **double ANY** essence type captured.
     - **Temporal Anchor:** If any player in the guild has an active Arcane familiar, all spawns in that server stay active for an additional **+15 seconds**.
+- **Daily Limits:** Each familiar can only trigger its passive a limited number of times per day (resets at Midnight UTC):
+  - **Common:** 20 triggers
+  - **Uncommon:** 25 triggers
+  - **Rare:** 30 triggers
+  - **Legendary:** 40 triggers
 
 ## 🍂 Releasing
 If your inventory or stable is full, you can release items to make room:

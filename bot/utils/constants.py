@@ -6,6 +6,8 @@ class GameConstants:
     ARCANE = "Arcane"
     WATER = "Water"
     ESSENCES = [EARTH, WIND, FIRE, ARCANE, WATER]
+    # Weights: Earth, Wind, Fire, Arcane, Water (Base elements equal, Arcane half-rate)
+    ESSENCE_WEIGHTS = [22, 22, 22, 12, 22]
 
     # Spirit Types
     FELINE = "Feline"

@@ -36,7 +36,7 @@ class EncounterService:
         # 2. Determine Rarity and Duration
         duration_seconds = 45 # Default
         if type == "essence":
-            subtype = override_subtype or random.choice(GameConstants.ESSENCES)
+            subtype = override_subtype or random.choices(GameConstants.ESSENCES, weights=GameConstants.ESSENCE_WEIGHTS, k=1)[0]
             rarity = None
             duration_seconds = random.randint(42, 50)
         else:

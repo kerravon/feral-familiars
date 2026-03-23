@@ -50,70 +50,39 @@ class PassiveService:
         if not familiar:
             return None
 
-        # Chance based on rarity (Common: 10%, Uncommon: 15%, Rare: 20%, Legendary: 30%)
+        # Scaling: Chance based on rarity of the spirit
+        # Common: 15%, Uncommon: 25%, Rare: 40%, Legendary: 60%
         chance_map = {
-            GameConstants.COMMON: 0.10,
-            GameConstants.UNCOMMON: 0.15,
-            GameConstants.RARE: 0.20,
-            GameConstants.LEGENDARY: 0.30
+            GameConstants.COMMON: 0.15,
+            GameConstants.UNCOMMON: 0.25,
+            GameConstants.RARE: 0.40,
+            GameConstants.LEGENDARY: 0.60
         }
         
-        chance = chance_map.get(familiar.rarity, 0.10)
+        chance = chance_map.get(familiar.rarity, 0.15)
+        
+        # Arcane familiars are stronger (+15% flat bonus to trigger)
+        if familiar.essence_type == GameConstants.ARCANE:
+            chance += 0.15
+
         if random.random() > chance:
             return None
 
-        # Determine effect based on Essence type
-        # Earth -> Extra quantity (+1)
-        # Wind -> (For MVP, we'll just do extra quantity as well)
-        # Fire -> Random extra essence
-        # Arcane -> Duplicate
-        
-        effect_msg = ""
-        if familiar.essence_type == GameConstants.EARTH:
-            # Add 1 extra essence
-            stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == captured_type)
-            res = await session.execute(stmt)
-            ess = res.scalar_one()
-            ess.count += 1
-            effect_msg = f"🌿 **{familiar.name}**'s Earth bond found an extra {captured_type} essence!"
-        
-        elif familiar.essence_type == GameConstants.ARCANE:
-            # Duplicate
-            stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == captured_type)
-            res = await session.execute(stmt)
-            ess = res.scalar_one()
-            ess.count += 1
-            effect_msg = f"✨ **{familiar.name}**'s Arcane resonance duplicated the {captured_type} essence!"
-            
-        elif familiar.essence_type == GameConstants.FIRE:
-            # Random extra essence
-            rand_type = random.choice(GameConstants.ESSENCES)
-            stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == rand_type)
-            res = await session.execute(stmt)
-            ess = res.scalar_one_or_none()
-            if not ess:
-                ess = Essence(user_id=user_id, type=rand_type, count=1)
-                session.add(ess)
-            else:
-                ess.count += 1
-            effect_msg = f"🔥 **{familiar.name}**'s Cinder sparked a new {rand_type} essence!"
-        
-        elif familiar.essence_type == GameConstants.WATER:
-            # Random different essence (Growth/Flow)
-            other_types = [e for e in GameConstants.ESSENCES if e != captured_type]
-            rand_type = random.choice(other_types)
-            stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == rand_type)
-            res = await session.execute(stmt)
-            ess = res.scalar_one_or_none()
-            if not ess:
-                ess = Essence(user_id=user_id, type=rand_type, count=1)
-                session.add(ess)
-            else:
-                ess.count += 1
-            effect_msg = f"🌊 **{familiar.name}**'s Fluidity flowed into a {rand_type} essence!"
-        
-        else: # WIND
-            effect_msg = f"💨 **{familiar.name}**'s Swiftness gathered the essence instantly (Passive triggered but effect TBD)!"
+        # 1. Base Element logic: Double the essence of the SAME type
+        # 2. Arcane logic: Double ANY essence type
+        can_double = (familiar.essence_type == captured_type) or (familiar.essence_type == GameConstants.ARCANE)
 
+        if not can_double:
+            return None
+
+        # Double the essence!
+        stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == captured_type)
+        res = await session.execute(stmt)
+        ess = res.scalar_one()
+        ess.count += 1
+        
+        emoji = "✨" if familiar.essence_type == GameConstants.ARCANE else "🌀"
+        effect_msg = f"{emoji} **{familiar.name}**'s resonance duplicated the {captured_type} essence!"
+        
         await session.commit()
         return effect_msg

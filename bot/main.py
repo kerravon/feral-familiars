@@ -177,11 +177,18 @@ async def on_message(message: discord.Message):
                         color=discord.Color.green()
                     )
                     bound_url = GameConstants.BOUND_IMAGES.get(encounter.subtype)
-                    new_embed.set_image(url=bound_url)
+                    if bound_url:
+                        new_embed.set_image(url=bound_url)
+                    else:
+                        logger.warning(f"No bound image found for {encounter.subtype}")
+                    
                     if encounter.rarity:
                         new_embed.add_field(name="Rarity", value=encounter.rarity.upper())
+                    
                     await msg.edit(embed=new_embed)
-                except: pass
+                    logger.info(f"Updated message {encounter.message_id} with bound image for {encounter.subtype}")
+                except Exception as e:
+                    logger.error(f"Failed to update capture message: {e}", exc_info=True)
                 if encounter.type == "essence":
                     passive_msg = await PassiveService.trigger_passive_bonus(session, message.author.id, encounter.subtype)
                     if passive_msg:

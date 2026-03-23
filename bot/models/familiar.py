@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import BigInteger, ForeignKey, String, DateTime, func
 from datetime import datetime
+from typing import Optional
 from bot.models.base import Base
 
 class Spirit(Base):
@@ -25,6 +26,11 @@ class Familiar(Base):
     rarity: Mapped[str] = mapped_column(String(20))
     name: Mapped[str] = mapped_column(String(50))
     is_active: Mapped[bool] = mapped_column(default=False)
+    
+    # Passive Limitation Fields
+    last_trigger_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    daily_trigger_count: Mapped[int] = mapped_column(default=0)
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     def __repr__(self) -> str:

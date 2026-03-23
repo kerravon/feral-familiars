@@ -50,6 +50,26 @@ class PassiveService:
         if not familiar:
             return None
 
+        # --- Daily Limit Reset & Check ---
+        now = datetime.now()
+        
+        # Determine Daily Limit by Rarity
+        limit_map = {
+            GameConstants.COMMON: 20,
+            GameConstants.UNCOMMON: 25,
+            GameConstants.RARE: 30,
+            GameConstants.LEGENDARY: 40
+        }
+        daily_max = limit_map.get(familiar.rarity, 20)
+
+        # Reset count if it's a new day (UTC Midnight)
+        if familiar.last_trigger_at:
+            if familiar.last_trigger_at.date() < now.date():
+                familiar.daily_trigger_count = 0
+        
+        if familiar.daily_trigger_count >= daily_max:
+            return None # Over limit for today
+
         # Scaling: Chance based on rarity of the spirit
         # Common: 15%, Uncommon: 25%, Rare: 40%, Legendary: 60%
         chance_map = {
@@ -81,8 +101,14 @@ class PassiveService:
         ess = res.scalar_one()
         ess.count += 1
         
+        # Update Familiar Stats
+        familiar.daily_trigger_count += 1
+        familiar.last_trigger_at = now
+        
         emoji = "✨" if familiar.essence_type == GameConstants.ARCANE else "🌀"
-        effect_msg = f"{emoji} **{familiar.name}**'s resonance duplicated the {captured_type} essence!"
+        rem = daily_max - familiar.daily_trigger_count
+        count_msg = f" ({rem} left today)" if rem > 0 else " (Limit reached for today!)"
+        effect_msg = f"{emoji} **{familiar.name}**'s resonance duplicated the {captured_type} essence!{count_msg}"
         
         await session.commit()
         return effect_msg

@@ -58,7 +58,7 @@ bot/
 ├── main.py              # Entry point, Events, & Background Tasks
 ├── db.py                # Database connection & Session management
 ├── migrate.py           # Manual migration script for DB updates
-├── commands/            # Slash Command Cogs (General, Game, Trade, Admin)
+├── commands/            # Slash Command Cogs (With Autocomplete for Spirits/Familiars)
 ├── models/              # Database Schemas (User, Essence, Spirit, Familiar, Encounter, Config, Trade)
 ├── services/            # Business Logic (Inventory, Ritual, Encounter, Bestow, Transmute, Passive)
 ├── utils/               

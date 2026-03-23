@@ -2,7 +2,7 @@ import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from bot.models.base import Base
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://feral_user:feral_pass@db:5432/feral_db")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://arcane_user:arcane_pass@db:5432/arcane_db")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = async_sessionmaker(

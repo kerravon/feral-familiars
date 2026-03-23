@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import BigInteger, String, DateTime, func, Boolean, ForeignKey
 from datetime import datetime
+from typing import Optional
 from bot.models.base import Base
 
 class Encounter(Base):
@@ -16,7 +17,8 @@ class Encounter(Base):
     is_active: Mapped[bool] = mapped_column(default=True)
     spawned_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime)
-    captured_by: Mapped[int] = mapped_column(BigInteger, nullable=True)
+    captured_by: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    blacklisted_user_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
 
 
     def __repr__(self) -> str:

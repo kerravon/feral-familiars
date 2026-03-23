@@ -14,7 +14,8 @@ class EncounterService:
         guild_id: int,
         type: str, # essence or spirit
         override_subtype: str = None,
-        override_rarity: str = None
+        override_rarity: str = None,
+        blacklisted_user_id: int = None
     ):
         # 1. Check if active encounter exists
         stmt = select(Encounter).where(
@@ -95,7 +96,8 @@ class EncounterService:
             message_id=0,
             is_active=True,
             spawned_at=spawn_time,
-            expires_at=spawn_time + timedelta(seconds=duration_seconds)
+            expires_at=spawn_time + timedelta(seconds=duration_seconds),
+            blacklisted_user_id=blacklisted_user_id
         )
         # Store if anchor was active for UI feedback
         # (We can use a temporary attribute or just return it)
@@ -139,6 +141,10 @@ class EncounterService:
         
         if not encounter:
             return None, "No active encounter in this channel."
+        
+        # Check blacklist (for released surges)
+        if encounter.blacklisted_user_id and user_id == encounter.blacklisted_user_id:
+            return None, "This energy is unstable for you. Let others bind it!"
         
         # 2. Validate keyword
         expected = "bind" if encounter.type == "essence" else "bind spirit"

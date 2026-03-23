@@ -6,8 +6,10 @@ from bot.db import AsyncSessionLocal
 from bot.services.ritual_service import RitualService
 from bot.services.passive_service import PassiveService
 from bot.services.inventory_service import InventoryService
+from bot.services.surge_service import SurgeService
 from bot.models.familiar import Familiar, Spirit
 from bot.utils.constants import GameConstants
+import asyncio
 
 class GameCog(commands.Cog):
     def __init__(self, bot):
@@ -69,9 +71,14 @@ class GameCog(commands.Cog):
                 await interaction.response.send_message("Spirit not found in your inventory.", ephemeral=True)
                 return
 
+            stype, srarity = spirit.type, spirit.rarity
+            
             success = await InventoryService.delete_spirit(session, interaction.user.id, spirit_id)
             if success:
-                await interaction.response.send_message(f"🍃 You have released the **{spirit.rarity.title()} {spirit.type} spirit** back into the ether.")
+                await interaction.response.send_message(f"🍃 You have released the **{srarity.title()} {stype} spirit** back into the ether. Its energy lingers in the air...")
+                asyncio.create_task(SurgeService.trigger_spirit_surge(
+                    self.bot, interaction.channel_id, interaction.guild_id, interaction.user.id, stype, srarity
+                ))
             else:
                 await interaction.response.send_message("❌ Failed to release spirit.", ephemeral=True)
 
@@ -79,9 +86,21 @@ class GameCog(commands.Cog):
     @app_commands.autocomplete(familiar_id=familiar_autocomplete)
     async def release_familiar(self, interaction: discord.Interaction, familiar_id: int):
         async with AsyncSessionLocal() as session:
+            stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == interaction.user.id)
+            res = await session.execute(stmt)
+            f = res.scalar_one_or_none()
+            if not f:
+                await interaction.response.send_message("Familiar not found.", ephemeral=True)
+                return
+            
+            fname, stype, srarity, etype = f.name, f.spirit_type, f.rarity, f.essence_type
+
             success, result = await RitualService.delete_familiar(session, interaction.user.id, familiar_id)
             if success:
-                await interaction.response.send_message(f"🕊️ **{result}** has been released from your stable and returned to the spirit realm.")
+                await interaction.response.send_message(f"🕊️ **{fname}** has been released from your stable. Its resonance shatters, scattering energy across the server!")
+                asyncio.create_task(SurgeService.trigger_familiar_surge(
+                    self.bot, interaction.channel_id, interaction.guild_id, interaction.user.id, stype, srarity, etype
+                ))
             else:
                 await interaction.response.send_message(f"❌ **Release Failed:** {result}", ephemeral=True)
 

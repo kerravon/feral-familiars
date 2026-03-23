@@ -140,17 +140,33 @@ async def on_message(message: discord.Message):
         return
 
     # Manual Spawn for testing
-    if content == "!testspawn" and message.author.guild_permissions.manage_channels:
+    if content.startswith("!testspawn") and message.author.guild_permissions.manage_channels:
+        parts = content.split()
+        # Usage: !testspawn [essence/spirit] [subtype] [rarity]
+        target_type = parts[1] if len(parts) > 1 else None
+        target_subtype = parts[2].title() if len(parts) > 2 else None
+        target_rarity = parts[3].lower() if len(parts) > 3 else None
+
         async with AsyncSessionLocal() as session:
-            type = "spirit" if random.random() < 0.3 else "essence"
-            encounter = await EncounterService.spawn_encounter(session, message.channel.id, message.guild.id, type)
+            if not target_type:
+                target_type = "spirit" if random.random() < 0.3 else "essence"
+            
+            encounter = await EncounterService.spawn_encounter(
+                session, 
+                message.channel.id, 
+                message.guild.id, 
+                target_type,
+                override_subtype=target_subtype,
+                override_rarity=target_rarity
+            )
+            
             if encounter:
                 embed = discord.Embed(
                     title=f"A {encounter.subtype} {encounter.type.title()} has appeared!",
-                    description=f"Type `bind` to capture this {encounter.type}." if type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
-                    color=discord.Color.blue() if type == "essence" else discord.Color.purple()
+                    description=f"Type `bind` to capture this {encounter.type}." if encounter.type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
+                    color=discord.Color.blue() if encounter.type == "essence" else discord.Color.purple()
                 )
-                if type == "essence":
+                if encounter.type == "essence":
                     embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
                     
                 if encounter.rarity:

@@ -13,6 +13,8 @@ class EncounterService:
         channel_id: int, 
         guild_id: int,
         type: str, # essence or spirit
+        override_subtype: str = None,
+        override_rarity: str = None
     ):
         # 1. Check if active encounter exists
         stmt = select(Encounter).where(
@@ -34,25 +36,29 @@ class EncounterService:
         # 2. Determine Rarity and Duration
         duration_seconds = 45 # Default
         if type == "essence":
-            subtype = random.choice(GameConstants.ESSENCES)
+            subtype = override_subtype or random.choice(GameConstants.ESSENCES)
             rarity = None
             duration_seconds = random.randint(42, 50)
         else:
-            subtype = random.choice(GameConstants.SPIRITS)
+            subtype = override_subtype or random.choice(GameConstants.SPIRITS)
             # Rarity distribution
-            rand = random.random()
-            if rand < 0.6: 
-                rarity = GameConstants.COMMON
-                duration_seconds = random.randint(40, 45)
-            elif rand < 0.85: 
-                rarity = GameConstants.UNCOMMON
-                duration_seconds = random.randint(38, 42)
-            elif rand < 0.97: 
-                rarity = GameConstants.RARE
-                duration_seconds = random.randint(36, 40)
-            else: 
-                rarity = GameConstants.LEGENDARY
-                duration_seconds = random.randint(34, 37)
+            if override_rarity:
+                rarity = override_rarity
+                duration_seconds = 45
+            else:
+                rand = random.random()
+                if rand < 0.6: 
+                    rarity = GameConstants.COMMON
+                    duration_seconds = random.randint(40, 45)
+                elif rand < 0.85: 
+                    rarity = GameConstants.UNCOMMON
+                    duration_seconds = random.randint(38, 42)
+                elif rand < 0.97: 
+                    rarity = GameConstants.RARE
+                    duration_seconds = random.randint(36, 40)
+                else: 
+                    rarity = GameConstants.LEGENDARY
+                    duration_seconds = random.randint(34, 37)
 
         spawn_time = datetime.now()
         encounter = Encounter(

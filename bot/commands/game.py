@@ -45,16 +45,16 @@ class GameCog(commands.Cog):
             else:
                 await interaction.response.send_message(f"❌ **Ritual Failed:** {result}", ephemeral=True)
 
-    @app_commands.command(name="equip", description="Equip a familiar to gain its passive bonus.")
+    @app_commands.command(name="summon", description="Summon a familiar from your stable to your side.")
     @app_commands.autocomplete(familiar_id=familiar_autocomplete)
-    async def equip(self, interaction: discord.Interaction, familiar_id: int):
+    async def summon(self, interaction: discord.Interaction, familiar_id: int):
         async with AsyncSessionLocal() as session:
             success, result = await PassiveService.equip_familiar(session, interaction.user.id, familiar_id)
 
             if success:
-                await interaction.response.send_message(f"✅ **{result.name}** is now your active familiar!")
+                await interaction.response.send_message(f"✨ **{result.name}** has manifested by your side!")
             else:
-                await interaction.response.send_message(f"❌ **Equip Failed:** {result}", ephemeral=True)
+                await interaction.response.send_message(f"❌ **Summon Failed:** {result}", ephemeral=True)
 
     @app_commands.command(name="release-spirit", description="Release a spirit from your inventory back into the wild.")
     @app_commands.autocomplete(spirit_id=spirit_autocomplete)

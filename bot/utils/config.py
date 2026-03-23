@@ -14,7 +14,7 @@ class Config:
     
     # Limits
     MAX_SPIRITS = int(os.getenv("MAX_SPIRITS", "5"))
-    DEFAULT_STABLE_LIMIT = int(os.getenv("DEFAULT_STABLE_LIMIT", "5"))
+    DEFAULT_STABLE_LIMIT = int(os.getenv("DEFAULT_STABLE_LIMIT", "3"))
 
     @classmethod
     def validate(cls):

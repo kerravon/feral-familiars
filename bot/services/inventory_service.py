@@ -70,3 +70,14 @@ class InventoryService:
         stmt = select(Familiar).where(Familiar.user_id == user_id)
         result = await session.execute(stmt)
         return list(result.scalars().all())
+
+    @staticmethod
+    async def delete_spirit(session: AsyncSession, user_id: int, spirit_id: int):
+        stmt = select(Spirit).where(Spirit.id == spirit_id, Spirit.user_id == user_id)
+        result = await session.execute(stmt)
+        spirit = result.scalar_one_or_none()
+        if spirit:
+            await session.delete(spirit)
+            await session.commit()
+            return True
+        return False

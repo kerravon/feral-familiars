@@ -82,3 +82,14 @@ class RitualService:
             await session.rollback()
             logger.error(f"Error during ritual: {e}", exc_info=True)
             return False, "An ancient disturbance interrupted the ritual. Please try again."
+
+    @staticmethod
+    async def delete_familiar(session: AsyncSession, user_id: int, familiar_id: int):
+        stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
+        result = await session.execute(stmt)
+        familiar = result.scalar_one_or_none()
+        if familiar:
+            await session.delete(familiar)
+            await session.commit()
+            return True, familiar.name
+        return False, "Familiar not found."

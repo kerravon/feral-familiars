@@ -171,3 +171,27 @@ class TransmuteView(ui.View):
             return
         self.stop()
         await interaction.response.edit_message(content="❌ **Ritual Aborted.**", embed=None, view=None)
+
+class FamiliarView(ui.View):
+    def __init__(self, familiar_id, user_id):
+        super().__init__(timeout=60)
+        self.familiar_id = familiar_id
+        self.user_id = user_id
+
+    @ui.button(label="Ignite Resonance", style=discord.ButtonStyle.danger, emoji="🔥")
+    async def ignite(self, interaction: discord.Interaction, button: ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This is not your familiar.", ephemeral=True)
+            return
+
+        from bot.services.passive_service import PassiveService
+        async with AsyncSessionLocal() as session:
+            success, result = await PassiveService.activate_passive(session, self.user_id, self.familiar_id)
+            
+            if success:
+                button.disabled = True
+                button.label = "Resonating..."
+                await interaction.response.edit_message(view=self)
+                await interaction.followup.send(f"🔥 **{result.name}'s resonance has been ignited!** Passive effects are active for the next 2 hours.")
+            else:
+                await interaction.response.send_message(f"❌ {result}", ephemeral=True)

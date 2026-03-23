@@ -1,12 +1,69 @@
 import discord
 from discord.ext import commands
 from typing import Optional
+from datetime import datetime
+from sqlalchemy import select
 from bot.db import AsyncSessionLocal
 from bot.services.inventory_service import InventoryService
+from bot.models.familiar import Familiar
+from bot.utils.ui import FamiliarView
 
 class GeneralCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    async def familiar_autocomplete(self, interaction: discord.Interaction, current: str):
+        async with AsyncSessionLocal() as session:
+            familiars = await InventoryService.get_familiars(session, interaction.user.id)
+            choices = [
+                discord.app_commands.Choice(name=f"{f.name} (ID: {f.id})", value=f.id)
+                for f in familiars if current.lower() in f.name.lower()
+            ]
+            return choices[:25]
+
+    @discord.app_commands.command(name="familiar", description="View detailed info about a familiar and activate its resonance.")
+    @discord.app_commands.autocomplete(familiar_id=familiar_autocomplete)
+    async def familiar_info(self, interaction: discord.Interaction, familiar_id: int):
+        async with AsyncSessionLocal() as session:
+            stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == interaction.user.id)
+            res = await session.execute(stmt)
+            f = res.scalar_one_or_none()
+
+            if not f:
+                await interaction.response.send_message("Familiar not found.", ephemeral=True)
+                return
+
+            embed = discord.Embed(title=f"🐾 {f.name}", color=discord.Color.gold())
+            embed.add_field(name="Type", value=f"{f.spirit_type} / {f.essence_type}", inline=True)
+            embed.add_field(name="Rarity", value=f.rarity.title(), inline=True)
+            
+            # Resonance Status
+            now = datetime.now()
+            status = "💤 Inactive"
+            if f.active_until and now < f.active_until:
+                delta = f.active_until - now
+                mins = int(delta.total_seconds() / 60)
+                status = f"🔥 RESONATING ({mins}m left)"
+            
+            embed.add_field(name="Resonance Status", value=status, inline=False)
+            
+            # Passive Description
+            passive_desc = f"Double {f.essence_type} essences when captured."
+            if f.essence_type == "Arcane":
+                passive_desc = "Double ANY essence type (+15% trigger bonus)."
+            embed.add_field(name="Passive Power", value=passive_desc, inline=False)
+
+            view = FamiliarView(f.id, interaction.user.id)
+            # Disable button if already active or used today
+            if f.last_activated_at and f.last_activated_at.date() == now.date():
+                if not (f.active_until and now < f.active_until):
+                    view.children[0].disabled = True
+                    view.children[0].label = "Used Today"
+                else:
+                    view.children[0].disabled = True
+                    view.children[0].label = "Resonating..."
+
+            await interaction.response.send_message(embed=embed, view=view)
 
     @discord.app_commands.command(name="inventory", description="View your essences and spirits or those of another user.")
     async def inventory(self, interaction: discord.Interaction, user: Optional[discord.User] = None):

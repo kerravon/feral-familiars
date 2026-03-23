@@ -3,6 +3,7 @@ from sqlalchemy import select, update
 from bot.models.familiar import Familiar
 from bot.models.essence import Essence
 from bot.utils.constants import GameConstants
+from datetime import datetime, timedelta
 import random
 
 class PassiveService:
@@ -45,15 +46,40 @@ class PassiveService:
             return False, f"Error equipping familiar: {e}"
 
     @staticmethod
+    async def activate_passive(session: AsyncSession, user_id: int, familiar_id: int):
+        """Sets active_until to 2 hours from now. Only once per day per familiar."""
+        now = datetime.now()
+        stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
+        result = await session.execute(stmt)
+        familiar = result.scalar_one_or_none()
+        
+        if not familiar:
+            return False, "Familiar not found."
+        
+        if familiar.last_activated_at and familiar.last_activated_at.date() == now.date():
+            return False, "You have already ignited this familiar's resonance today."
+
+        # Activate for 2 hours
+        familiar.last_activated_at = now
+        familiar.active_until = now + timedelta(hours=2)
+        familiar.daily_trigger_count = 0 # Reset count for the session
+        await session.commit()
+        return True, familiar
+
+    @staticmethod
     async def trigger_passive_bonus(session: AsyncSession, user_id: int, captured_type: str):
         familiar = await PassiveService.get_active_familiar(session, user_id)
         if not familiar:
             return None
 
-        # --- Daily Limit Reset & Check ---
+        # --- Daily Limit & Active Check ---
         now = datetime.now()
         
-        # Determine Daily Limit by Rarity
+        # Check if passive is currently active
+        if not familiar.active_until or now > familiar.active_until:
+            return None # Not in resonance mode
+        
+        # Determine Daily Limit by Rarity (Max triggers during the 2h window)
         limit_map = {
             GameConstants.COMMON: 20,
             GameConstants.UNCOMMON: 25,
@@ -62,13 +88,8 @@ class PassiveService:
         }
         daily_max = limit_map.get(familiar.rarity, 20)
 
-        # Reset count if it's a new day (UTC Midnight)
-        if familiar.last_trigger_at:
-            if familiar.last_trigger_at.date() < now.date():
-                familiar.daily_trigger_count = 0
-        
         if familiar.daily_trigger_count >= daily_max:
-            return None # Over limit for today
+            return None # Over limit for this session
 
         # Scaling: Chance based on rarity of the spirit
         # Common: 15%, Uncommon: 25%, Rare: 40%, Legendary: 60%
@@ -103,7 +124,6 @@ class PassiveService:
         
         # Update Familiar Stats
         familiar.daily_trigger_count += 1
-        familiar.last_trigger_at = now
         
         emoji = "✨" if familiar.essence_type == GameConstants.ARCANE else "🌀"
         rem = daily_max - familiar.daily_trigger_count

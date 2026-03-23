@@ -83,17 +83,46 @@ class GeneralCog(commands.Cog):
             
             await interaction.response.send_message(embed=embed)
 
-    @discord.app_commands.command(name="familiars", description="View your familiars in the stable.")
+    @discord.app_commands.command(name="familiars", description="View your collection of familiars in the stable.")
     async def familiars(self, interaction: discord.Interaction):
         async with AsyncSessionLocal() as session:
             fams = await InventoryService.get_familiars(session, interaction.user.id)
-            embed = discord.Embed(title=f"{interaction.user.name}'s Stable", color=discord.Color.gold())
+            embed = discord.Embed(title=f"🏰 {interaction.user.name}'s Stable", color=discord.Color.gold())
+            
             if not fams:
                 embed.description = "No familiars yet. Perform a /ritual to create one!"
             else:
+                now = datetime.now()
                 for f in fams:
-                    status = "🟢 [ACTIVE]" if f.is_active else ""
-                    embed.add_field(name=f"{f.name} (ID: {f.id}) {status}", value=f"Type: {f.spirit_type}/{f.essence_type}\nRarity: {f.rarity.title()}", inline=False)
+                    # 1. Summoned Status
+                    status_icon = "🟢 [SUMMONED]" if f.is_active else "⚪"
+                    
+                    # 2. Resonance Status
+                    resonance_status = "💤 Inactive"
+                    if f.active_until and now < f.active_until:
+                        delta = f.active_until - now
+                        mins = int(delta.total_seconds() / 60)
+                        resonance_status = f"🔥 RESONATING ({mins}m left)"
+                    
+                    # 3. Trigger Counts
+                    limit_map = {"common": 20, "uncommon": 25, "rare": 30, "legendary": 40}
+                    max_trig = limit_map.get(f.rarity, 20)
+                    triggers = f"{f.daily_trigger_count}/{max_trig} used"
+
+                    field_value = (
+                        f"**Type:** {f.spirit_type}/{f.essence_type}\n"
+                        f"**Rarity:** {f.rarity.title()}\n"
+                        f"**Status:** {resonance_status}\n"
+                        f"**Passives:** {triggers}"
+                    )
+                    
+                    embed.add_field(
+                        name=f"{status_icon} {f.name} (ID: {f.id})", 
+                        value=field_value, 
+                        inline=False
+                    )
+            
+            embed.set_footer(text="Use /summon [id] to swap active familiars. Use /familiar [id] to ignite resonance.")
             await interaction.response.send_message(embed=embed)
 
     @discord.app_commands.command(name="ritual-guide", description="View the guide for familiar creation, gifting, and taxes.")

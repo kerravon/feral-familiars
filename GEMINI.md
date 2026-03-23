@@ -30,6 +30,7 @@ A Discord-based creature collection and ritual game where players capture mystic
 
 ### 2. Capture System (Keyword-Based)
 *   **Keywords:** `bind` (essences) and `bind spirit` (spirits).
+*   **Debug Command:** `!testspawn [essence/spirit] [subtype] [rarity]` (Admins only).
 *   **Rules:**
     *   1-second anti-macro delay.
     *   First-valid-message wins.

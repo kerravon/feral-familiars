@@ -54,13 +54,15 @@ A Discord-based creature collection and ritual game where players capture mystic
 ## 📁 Project Structure
 ```
 bot/
-├── main.py              # Entry point, Events, & Slash Commands
+├── main.py              # Entry point, Events, & Background Tasks
 ├── db.py                # Database connection & Session management
 ├── migrate.py           # Manual migration script for DB updates
+├── commands/            # Slash Command Cogs (General, Game, Trade, Admin)
 ├── models/              # Database Schemas (User, Essence, Spirit, Familiar, Encounter, Config, Trade)
 ├── services/            # Business Logic (Inventory, Ritual, Encounter, Bestow, Transmute, Passive)
 └── utils/               
     ├── constants.py     # Naming banks, Costs, & Image URLs
+    ├── config.py        # Centralized environment variable management
     └── ui.py            # Interactive Discord Views and Modals
 ```
 

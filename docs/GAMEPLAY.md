@@ -4,15 +4,17 @@
 Spawns occur periodically (default every 2 minutes) in active channels with a configurable chance (default 15-25%).
 
 ### Types of Encounters
-- **Essences (80%):** Earth, Wind, Fire, Arcane, Water. Used for rituals and paying taxes.
+- **Essences (80%):** 
+  - **Base Elements:** Earth, Wind, Fire, Water (Equal spawn weight).
+  - **Special:** Arcane (Rare - ~50% spawn rate compared to base elements).
 - **Spirits (20%):** Feline, Canine, Winged, Goblin. The core of a familiar.
 
 ### 💎 Rarity (Spirits Only)
-Rarity determines the creation cost and potential power of a familiar:
-- **Common (60%):** Cost: 10
-- **Uncommon (25%):** Cost: 20
-- **Rare (12%):** Cost: 40
-- **Legendary (3%):** Cost: 80
+Rarity determines the creation cost and the **success chance of Passive Effects**:
+- **Common (60%):** Cost: 10 | Passive Chance: 15%
+- **Uncommon (25%):** Cost: 20 | Passive Chance: 25%
+- **Rare (12%):** Cost: 40 | Passive Chance: 40%
+- **Legendary (3%):** Cost: 80 | Passive Chance: 60%
 
 ## 🪢 Capture (Binding)
 - **Keyword:** `bind` for essences, `bind spirit` for spirits.
@@ -22,4 +24,6 @@ Rarity determines the creation cost and potential power of a familiar:
   - **Expiration:** Encounters fade after a few seconds if not bound.
 
 ## 🟢 Active Familiars
-Equipping a familiar using `/equip` makes it your active companion. Currently, only one familiar can be active at a time. Active familiars provide passive bonuses (under development).
+Equipping a familiar using `/equip` makes it your active companion. Active familiars provide **Passive Bonuses**:
+- **Base Familiars:** % Chance to **double** captured essences of the SAME type (e.g., Fire familiar doubles Fire essences).
+- **Arcane Familiars:** Higher % Chance (+15% flat) to **double ANY** essence type captured.

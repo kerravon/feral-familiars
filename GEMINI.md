@@ -68,6 +68,13 @@ bot/
 
 ---
 
+## 🛠 Development Guidelines
+*   **Git:** Always stage and commit changes after completing a batch of requested modifications.
+*   **Documentation:** Ensure `GEMINI.md` and related files in `docs/` are updated immediately whenever architectural or mechanical changes are made.
+*   **Testing:** Verify changes via available test suites or manual reproduction before committing.
+
+---
+
 ## 🔮 Future Vision (Phase 2+)
 *   **Bonus Ritual Spells:** Complex recipes for "Awakened" familiars.
 *   **Rare Essence Types:** Celestial, Void, and Abyssal (low drop rates).

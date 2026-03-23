@@ -28,7 +28,8 @@ class Familiar(Base):
     is_active: Mapped[bool] = mapped_column(default=False)
     
     # Passive Limitation Fields
-    last_trigger_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    active_until: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     daily_trigger_count: Mapped[int] = mapped_column(default=0)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())

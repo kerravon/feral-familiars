@@ -185,6 +185,37 @@ async def on_message(message: discord.Message):
                 await message.reply("An encounter is already active in this channel.")
         return
 
+    # Manual Familiar for testing
+    if content.startswith("!givefamiliar") and message.author.guild_permissions.manage_guild:
+        parts = content.split()
+        # Usage: !givefamiliar [essence_type] [rarity] [spirit_type]
+        etype = parts[1].title() if len(parts) > 1 else "Fire"
+        rarity = parts[2].lower() if len(parts) > 2 else "common"
+        stype = parts[3].title() if len(parts) > 3 else "Feline"
+
+        if etype not in GameConstants.ESSENCES or rarity not in GameConstants.RARITIES:
+            await message.reply(f"Invalid type or rarity. Types: {GameConstants.ESSENCES}, Rarities: {GameConstants.RARITIES}")
+            return
+
+        async with AsyncSessionLocal() as session:
+            import random
+            adj = random.choice(GameConstants.ESSENCE_ADJECTIVES[etype][rarity])
+            noun = random.choice(GameConstants.SPIRIT_NOUNS.get(stype, GameConstants.SPIRIT_NOUNS["Feline"])[rarity])
+            fname = f"DEBUG {adj} {noun}"
+
+            from bot.models.familiar import Familiar
+            new_fam = Familiar(
+                user_id=message.author.id,
+                spirit_type=stype,
+                essence_type=etype,
+                rarity=rarity,
+                name=fname
+            )
+            session.add(new_fam)
+            await session.commit()
+            await message.reply(f"🎁 **Debug Gift:** You have received **{fname}**!")
+        return
+
     if content in ["bind", "bind spirit"]:
         async with AsyncSessionLocal() as session:
             encounter, result = await EncounterService.process_capture_attempt(session, message.channel.id, message.author.id, content)

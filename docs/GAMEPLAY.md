@@ -30,11 +30,15 @@ Rarity determines the creation cost and the **success chance of Passive Effects*
 Equipping a familiar using `/summon` makes it your active companion. 
 - **Stable Limit:** You can hold a maximum of **3** familiars.
 - **Passive Bonuses:**
-  - **Base Familiars:** % Chance to **double** captured essences of the SAME type (e.g., Fire familiar doubles Fire essences).
+  - **Base Familiars:** % Chance to **double** captured essences of the SAME type.
   - **Arcane Familiars:**
     - Higher % Chance (+15% flat) to **double ANY** essence type captured.
     - **Temporal Anchor:** If any player in the guild has an active Arcane familiar, all spawns in that server stay active for an additional **+15 seconds**.
-- **Daily Limits:** Each familiar can only trigger its passive a limited number of times per day (resets at Midnight UTC):
+- **Resonance (Activation):** Passives are not active 24/7. You must manually ignite a familiar's resonance:
+  - Use **`/familiar [name]`** to view your familiar's status.
+  - Click the **`Ignite Resonance`** button to enable its passive for **2 hours**.
+  - Resonance can be ignited **once per day** per familiar.
+- **Session Limits:** During the 2-hour resonance window, a familiar can trigger its passive a limited number of times:
   - **Common:** 20 triggers
   - **Uncommon:** 25 triggers
   - **Rare:** 30 triggers

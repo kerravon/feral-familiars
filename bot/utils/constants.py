@@ -41,7 +41,7 @@ class GameConstants:
     # Images shown AFTER capture (Bound)
     BOUND_IMAGES = {
         EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png", # Replace with bound versions later!
-        WIND: "https://i.ibb.co/V0wj7791/air-essence2-bound.png",
+        WIND: "https://i.ibb.co/S4w3K1Tg/air-essence-bound2.png",
         FIRE: "https://i.ibb.co/LXpxBzHZ/fire-essence.png",
         ARCANE: "https://i.ibb.co/8X8v8X8.png",
         WATER: "https://i.ibb.co/zTmtRwx1/water-essence.png"

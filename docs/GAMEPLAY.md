@@ -26,4 +26,6 @@ Rarity determines the creation cost and the **success chance of Passive Effects*
 ## 🟢 Active Familiars
 Equipping a familiar using `/equip` makes it your active companion. Active familiars provide **Passive Bonuses**:
 - **Base Familiars:** % Chance to **double** captured essences of the SAME type (e.g., Fire familiar doubles Fire essences).
-- **Arcane Familiars:** Higher % Chance (+15% flat) to **double ANY** essence type captured.
+- **Arcane Familiars:**
+  - Higher % Chance (+15% flat) to **double ANY** essence type captured.
+  - **Temporal Anchor:** If any player in the guild has an active Arcane familiar, all spawns in that server stay active for an additional **+15 seconds**.

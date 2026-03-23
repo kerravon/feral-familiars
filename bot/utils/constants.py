@@ -33,7 +33,7 @@ class GameConstants:
     ESSENCE_IMAGES = {
         EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png",
         WIND: "https://i.ibb.co/wZM4kYPf/air-essence2.png",
-        FIRE: "https://i.ibb.co/LXpxBzHZ/fire-essence.png",
+        FIRE: "https://i.ibb.co/C36Dz776/fire-essence2.webp",
         ARCANE: "https://i.ibb.co/8X8v8X8.png", # Still needs an image!
         WATER: "https://i.ibb.co/zTmtRwx1/water-essence.png"
     }
@@ -42,7 +42,7 @@ class GameConstants:
     BOUND_IMAGES = {
         EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png", # Replace with bound versions later!
         WIND: "https://i.ibb.co/S4w3K1Tg/air-essence-bound2.png",
-        FIRE: "https://i.ibb.co/LXpxBzHZ/fire-essence.png",
+        FIRE: "https://i.ibb.co/FdZ7Ltt/fire-essence2-bound.webp",
         ARCANE: "https://i.ibb.co/8X8v8X8.png",
         WATER: "https://i.ibb.co/zTmtRwx1/water-essence.png"
     }

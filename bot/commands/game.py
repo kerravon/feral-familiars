@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 from sqlalchemy import update, select
 from bot.db import AsyncSessionLocal
 from bot.services.ritual_service import RitualService
@@ -12,7 +13,26 @@ class GameCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @discord.app_commands.command(name="ritual", description="Combine a spirit and essences to create a familiar.")
+    async def spirit_autocomplete(self, interaction: discord.Interaction, current: str):
+        async with AsyncSessionLocal() as session:
+            spirits = await InventoryService.get_spirits(session, interaction.user.id)
+            choices = [
+                app_commands.Choice(name=f"{s.rarity.title()} {s.type} (ID: {s.id})", value=s.id)
+                for s in spirits if current.lower() in f"{s.rarity} {s.type}".lower()
+            ]
+            return choices[:25]
+
+    async def familiar_autocomplete(self, interaction: discord.Interaction, current: str):
+        async with AsyncSessionLocal() as session:
+            familiars = await InventoryService.get_familiars(session, interaction.user.id)
+            choices = [
+                app_commands.Choice(name=f"{f.name} (ID: {f.id})", value=f.id)
+                for f in familiars if current.lower() in f.name.lower()
+            ]
+            return choices[:25]
+
+    @app_commands.command(name="ritual", description="Combine a spirit and essences to create a familiar.")
+    @app_commands.autocomplete(spirit_id=spirit_autocomplete)
     async def ritual(self, interaction: discord.Interaction, spirit_id: int, essence_type: str):
         essence_type = essence_type.title()
         if essence_type not in GameConstants.ESSENCES:
@@ -25,7 +45,8 @@ class GameCog(commands.Cog):
             else:
                 await interaction.response.send_message(f"❌ **Ritual Failed:** {result}", ephemeral=True)
 
-    @discord.app_commands.command(name="equip", description="Equip a familiar to gain its passive bonus.")
+    @app_commands.command(name="equip", description="Equip a familiar to gain its passive bonus.")
+    @app_commands.autocomplete(familiar_id=familiar_autocomplete)
     async def equip(self, interaction: discord.Interaction, familiar_id: int):
         async with AsyncSessionLocal() as session:
             success, result = await PassiveService.equip_familiar(session, interaction.user.id, familiar_id)
@@ -35,7 +56,8 @@ class GameCog(commands.Cog):
             else:
                 await interaction.response.send_message(f"❌ **Equip Failed:** {result}", ephemeral=True)
 
-    @discord.app_commands.command(name="release-spirit", description="Release a spirit from your inventory back into the wild.")
+    @app_commands.command(name="release-spirit", description="Release a spirit from your inventory back into the wild.")
+    @app_commands.autocomplete(spirit_id=spirit_autocomplete)
     async def release_spirit(self, interaction: discord.Interaction, spirit_id: int):
         async with AsyncSessionLocal() as session:
             # First fetch to show info
@@ -53,7 +75,8 @@ class GameCog(commands.Cog):
             else:
                 await interaction.response.send_message("❌ Failed to release spirit.", ephemeral=True)
 
-    @discord.app_commands.command(name="release-familiar", description="Release a familiar from your stable. This is permanent!")
+    @app_commands.command(name="release-familiar", description="Release a familiar from your stable. This is permanent!")
+    @app_commands.autocomplete(familiar_id=familiar_autocomplete)
     async def release_familiar(self, interaction: discord.Interaction, familiar_id: int):
         async with AsyncSessionLocal() as session:
             success, result = await RitualService.delete_familiar(session, interaction.user.id, familiar_id)

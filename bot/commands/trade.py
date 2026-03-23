@@ -5,12 +5,22 @@ from typing import Optional
 from bot.db import AsyncSessionLocal
 from bot.services.transmute_service import TransmuteService
 from bot.services.bestow_service import BestowService
+from bot.services.inventory_service import InventoryService
 from bot.utils.ui import TransmuteView
 from bot.utils.constants import GameConstants
 
 class TradeCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    async def spirit_autocomplete(self, interaction: discord.Interaction, current: str):
+        async with AsyncSessionLocal() as session:
+            spirits = await InventoryService.get_spirits(session, interaction.user.id)
+            choices = [
+                app_commands.Choice(name=f"{s.rarity.title()} {s.type} (ID: {s.id})", value=s.id)
+                for s in spirits if current.lower() in f"{s.rarity} {s.type}".lower()
+            ]
+            return choices[:25]
 
     @app_commands.command(name="transmute", description="Start a ritual of transmutation (trade) with another player (5% Ritual Fee).")
     async def transmute(self, interaction: discord.Interaction, user: discord.User):
@@ -41,6 +51,7 @@ class TradeCog(commands.Cog):
             )
 
     @app_commands.command(name="bestow", description="Gift essences or spirits to another player (YOU pay the Ritual Fee).")
+    @app_commands.autocomplete(spirit_id=spirit_autocomplete)
     @app_commands.describe(
         user="The player you are gifting to",
         essence_type="Type of essence to gift (Optional)",

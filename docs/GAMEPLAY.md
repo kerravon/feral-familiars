@@ -45,6 +45,14 @@ Equipping a familiar using `/summon` makes it your active companion.
   - **Legendary:** 40 triggers
 
 ## 🍂 Releasing
-If your inventory or stable is full, you can release items to make room:
-- `/release-spirit [id]`: Permanently removes a spirit from your inventory.
-- `/release-familiar [id]`: Permanently removes a familiar from your stable.
+If your inventory or stable is full, you can release items to make room. Releasing triggers a **Resonance Surge**—a series of immediate spawns in the current channel.
+- **Rules:** The player who releases the item **cannot** capture the resulting spawns.
+- **Spirits:** 
+  - 30% chance to respawn the spirit.
+  - 70% chance to splinter into **3 matching Essences**, spawned 5 seconds apart.
+- **Familiars:** 
+  - Triggers a **Prismatic Burst**: Spawns the original Spirit **AND** **5 random Essences**, spawned 4-6 seconds apart.
+
+**Commands:**
+- `/release-spirit [name]`: Permanently removes a spirit from your inventory.
+- `/release-familiar [name]`: Permanently removes a familiar from your stable.

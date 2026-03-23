@@ -32,6 +32,10 @@ class Familiar(Base):
     last_activated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     daily_trigger_count: Mapped[int] = mapped_column(default=0)
     
+    # Leveling Fields
+    level: Mapped[int] = mapped_column(default=1)
+    xp: Mapped[int] = mapped_column(default=0)
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     def __repr__(self) -> str:

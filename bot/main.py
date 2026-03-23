@@ -198,6 +198,9 @@ async def on_message(message: discord.Message):
             return
 
         async with AsyncSessionLocal() as session:
+            from bot.services.inventory_service import InventoryService
+            await InventoryService.get_or_create_user(session, message.author.id)
+            
             adj = random.choice(GameConstants.ESSENCE_ADJECTIVES[etype][rarity])
             noun = random.choice(GameConstants.SPIRIT_NOUNS.get(stype, GameConstants.SPIRIT_NOUNS["Feline"])[rarity])
             fname = f"DEBUG {adj} {noun}"

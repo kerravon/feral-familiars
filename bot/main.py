@@ -108,6 +108,9 @@ class FeralFamiliarsBot(commands.Bot):
                     if encounter.rarity:
                         embed.add_field(name="Rarity", value=encounter.rarity.upper())
                     
+                    if getattr(encounter, "_temp_anchor_active", False):
+                        embed.set_footer(text="✨ Temporal Anchor Active: Spawns stay 15s longer!")
+
                     msg = await channel.send(embed=embed)
                     encounter.message_id = msg.id
                     await session.commit()
@@ -171,6 +174,10 @@ async def on_message(message: discord.Message):
                     
                 if encounter.rarity:
                     embed.add_field(name="Rarity", value=encounter.rarity.upper())
+                
+                if getattr(encounter, "_temp_anchor_active", False):
+                    embed.set_footer(text="✨ Temporal Anchor Active: Spawns stay 15s longer!")
+
                 msg = await message.channel.send(embed=embed)
                 encounter.message_id = msg.id
                 await session.commit()

@@ -35,6 +35,28 @@ class EncounterService:
         
         # 2. Determine Rarity and Duration
         duration_seconds = 45 # Default
+        
+        # --- Temporal Anchor (Arcane Passive) ---
+        # Check if anyone in this guild has an active Arcane familiar
+        arcane_stmt = select(Familiar).where(
+            Familiar.user_id.in_(
+                select(User.id).where(User.id == Familiar.user_id) # Implicit join/check
+            ),
+            Familiar.is_active == True,
+            Familiar.essence_type == GameConstants.ARCANE
+        )
+        # Simpler: Just check if any active Arcane familiar exists for any user. 
+        # To be guild-specific, we'd need a join with a member table, but since we don't 
+        # track 'User-in-Guild' explicitly in a join table yet, let's look for ANY 
+        # active Arcane familiar globally for now as a "World Blessing", 
+        # or I can add a quick check for players who have interacted in this guild.
+        
+        # Let's do a more performant check: Is there ANY active Arcane familiar?
+        # (We can refine this to Guild-only later if we add a GuildMember model)
+        stmt_arcane = select(Familiar).where(Familiar.is_active == True, Familiar.essence_type == GameConstants.ARCANE).limit(1)
+        arcane_res = await session.execute(stmt_arcane)
+        has_arcane_anchor = arcane_res.scalar_one_or_none() is not None
+
         if type == "essence":
             subtype = override_subtype or random.choices(GameConstants.ESSENCES, weights=GameConstants.ESSENCE_WEIGHTS, k=1)[0]
             rarity = None
@@ -60,6 +82,9 @@ class EncounterService:
                     rarity = GameConstants.LEGENDARY
                     duration_seconds = random.randint(34, 37)
 
+        if has_arcane_anchor:
+            duration_seconds += 15
+
         spawn_time = datetime.now()
         encounter = Encounter(
             channel_id=channel_id,
@@ -72,6 +97,10 @@ class EncounterService:
             spawned_at=spawn_time,
             expires_at=spawn_time + timedelta(seconds=duration_seconds)
         )
+        # Store if anchor was active for UI feedback
+        # (We can use a temporary attribute or just return it)
+        encounter._temp_anchor_active = has_arcane_anchor
+        
         session.add(encounter)
         await session.commit()
         await session.refresh(encounter)

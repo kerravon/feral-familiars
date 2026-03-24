@@ -82,9 +82,14 @@ class FeralFamiliarsBot(commands.Bot):
                             channel = self.get_channel(e.channel_id) or await self.fetch_channel(e.channel_id)
                             msg = await channel.fetch_message(e.message_id)
                             embed = msg.embeds[0]
-                            embed.set_footer(text=f"✨ SOUL ANCHOR: {anchor_fam.name} has anchored this spirit for +30s!")
+                            
+                            # Fetch user name for the public boost
+                            user = self.get_user(anchor_fam.user_id) or await self.fetch_user(anchor_fam.user_id)
+                            user_name = user.display_name if user else "A mysterious master"
+                            
+                            embed.set_footer(text=f"✨ SOUL ANCHOR: {user_name}'s {anchor_fam.name} has anchored this spirit for +30s!")
                             await msg.edit(embed=embed)
-                            logger.info(f"Soul Anchor saved spirit {e.id}")
+                            logger.info(f"Soul Anchor saved spirit {e.id} (Owner: {user_name})")
                             continue
 
                 channel = self.get_channel(e.channel_id)

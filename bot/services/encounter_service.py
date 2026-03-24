@@ -65,7 +65,9 @@ class EncounterService:
             rarity = None
             duration_seconds = random.randint(42, 50)
         else:
-            subtype = override_subtype or random.choice(GameConstants.SPIRITS)
+            # 10% chance for Restless spirit, others balanced (22.5% each)
+            weights = [22.5, 22.5, 22.5, 22.5, 10]
+            subtype = override_subtype or random.choices(GameConstants.SPIRITS, weights=weights, k=1)[0]
             # Rarity distribution
             if override_rarity:
                 rarity = override_rarity

@@ -14,7 +14,8 @@ class GameConstants:
     CANINE = "Canine"
     WINGED = "Winged"
     GOBLIN = "Goblin"
-    SPIRITS = [FELINE, CANINE, WINGED, GOBLIN]
+    RESTLESS = "Restless"
+    SPIRITS = [FELINE, CANINE, WINGED, GOBLIN, RESTLESS]
 
     # Rarities
     COMMON = "common"
@@ -107,5 +108,11 @@ class GameConstants:
             UNCOMMON: ["Gremlin", "Hob", "Kobold"],
             RARE: ["Orc", "Troll", "Ogre"],
             LEGENDARY: ["War-Brute", "Iron-Blight", "Chaos-Titan"]
+        },
+        RESTLESS: {
+            COMMON: ["Wisp", "Shade", "Flicker"],
+            UNCOMMON: ["Spirit", "Apparition", "Haunt"],
+            RARE: ["Specter", "Phantom", "Banshee"],
+            LEGENDARY: ["Wraith-Lord", "Veil-Revenant", "Death-Echo"]
         }
     }

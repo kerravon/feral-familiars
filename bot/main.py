@@ -52,6 +52,41 @@ class FeralFamiliarsBot(commands.Bot):
             expired_encounters = await EncounterService.get_expired_encounters(session)
             
             for e in expired_encounters:
+                # --- Soul Anchor (Restless Passive) ---
+                if e.type == "spirit":
+                    # Check if any user in guild has an active RESONATING Restless familiar
+                    from sqlalchemy import select
+                    from bot.models.familiar import Familiar
+                    from datetime import datetime
+                    now = datetime.now()
+                    
+                    stmt = select(Familiar).where(
+                        Familiar.is_active == True,
+                        Familiar.spirit_type == GameConstants.RESTLESS,
+                        Familiar.active_until > now
+                    ).limit(1)
+                    res = await session.execute(stmt)
+                    anchor_fam = res.scalar_one_or_none()
+                    
+                    if anchor_fam:
+                        # 20-50% chance based on rarity
+                        chances = {"common": 0.2, "uncommon": 0.3, "rare": 0.4, "legendary": 0.5}
+                        if random.random() < chances.get(anchor_fam.rarity, 0.2):
+                            # SAVE the spirit!
+                            e.expires_at = now + asyncio.run_coroutine_threadsafe(asyncio.sleep(0), asyncio.get_event_loop())._loop.time() # This is a bit complex for a simple timestamp, let's just use now + 30s
+                            from datetime import timedelta
+                            e.expires_at = now + timedelta(seconds=30)
+                            e.is_active = True
+                            await session.commit()
+                            
+                            channel = self.get_channel(e.channel_id) or await self.fetch_channel(e.channel_id)
+                            msg = await channel.fetch_message(e.message_id)
+                            embed = msg.embeds[0]
+                            embed.set_footer(text=f"✨ SOUL ANCHOR: {anchor_fam.name} has anchored this spirit for +30s!")
+                            await msg.edit(embed=embed)
+                            logger.info(f"Soul Anchor saved spirit {e.id}")
+                            continue
+
                 channel = self.get_channel(e.channel_id)
                 if not channel:
                     try:

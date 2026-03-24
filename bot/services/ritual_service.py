@@ -36,6 +36,23 @@ class RitualService:
             if not essence or essence.count < actual_cost:
                 return False, f"Insufficient {essence_type} essences. Need {actual_cost}, you have {essence.count if essence else 0}."
             
+            # --- Restless Spirit Extra Cost (Arcane) ---
+            arcane_cost = 0
+            arcane_essence = None
+            if spirit.type == GameConstants.RESTLESS and essence_type != GameConstants.ARCANE:
+                arc_cost_map = {
+                    GameConstants.COMMON: 5,
+                    GameConstants.UNCOMMON: 10,
+                    GameConstants.RARE: 15,
+                    GameConstants.LEGENDARY: 25
+                }
+                arcane_cost = arc_cost_map[spirit.rarity]
+                stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == GameConstants.ARCANE)
+                res = await session.execute(stmt)
+                arcane_essence = res.scalar_one_or_none()
+                if not arcane_essence or arcane_essence.count < arcane_cost:
+                    return False, f"Restless spirits require extra Arcane energy to bind. Need {arcane_cost} Arcane essences."
+            
             # 3. Check Stable Limit
             stmt = select(User).where(User.id == user_id)
             result = await session.execute(stmt)
@@ -56,6 +73,8 @@ class RitualService:
             async with session.begin_nested():
                 # Consume essence
                 essence.count -= actual_cost
+                if arcane_essence:
+                    arcane_essence.count -= arcane_cost
                 
                 # Consume spirit
                 await session.delete(spirit)

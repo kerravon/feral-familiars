@@ -7,7 +7,9 @@ Spawns occur periodically (default every 2 minutes) in active channels with a co
 - **Essences (80%):** 
   - **Base Elements:** Earth, Wind, Fire, Water (Equal spawn weight).
   - **Special:** Arcane (Rare - ~50% spawn rate compared to base elements).
-- **Spirits (20%):** Feline, Canine, Winged, Goblin. The core of a familiar.
+- **Spirits (20%):** 
+  - **Base Spirits:** Feline, Canine, Winged, Goblin (Standard spawn rate).
+  - **Special:** Restless (Rare - ~10% spawn weight).
 
 ### 💎 Rarity (Spirits Only)
 Rarity determines the creation cost and the **success chance of Passive Effects**:
@@ -34,6 +36,8 @@ Equipping a familiar using `/summon` makes it your active companion.
   - **Arcane Familiars:**
     - Higher % Chance (+15% flat) to **double ANY** essence type captured.
     - **Temporal Anchor:** If any player in the guild has an active Arcane familiar, all spawns in that server stay active for an additional **+15 seconds**.
+  - **Restless Familiars:**
+    - **Soul Anchor:** If a Restless familiar's resonance is active in the server, any spirit that is about to fade has a **20-50% chance** (by rarity) to be anchored, staying for an additional **+30 seconds**.
 - **Resonance (Activation):** Passives are not active 24/7. You must manually ignite a familiar's resonance:
   - Use **`/familiar [name]`** to view your familiar's status.
   - Click the **`Ignite Resonance`** button to enable its passive for **2 hours**.

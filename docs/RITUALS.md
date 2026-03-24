@@ -11,6 +11,13 @@ To create a familiar, you must combine a captured **Spirit** with a specific num
 - **Rare:** 40 Essences
 - **Legendary:** 80 Essences
 
+### 🕯️ Special: Restless Spirits
+Restless spirits are unstable and require an infusion of **Arcane Essence** in addition to their base element to be bound:
+- **Common:** +5 Arcane
+- **Uncommon:** +10 Arcane
+- **Rare:** +15 Arcane
+- **Legendary:** +25 Arcane
+
 ## 🎁 Gifting (Bestow)
 `/bestow user tax_payment essence_type amount`
 `/bestow user tax_payment spirit_id`

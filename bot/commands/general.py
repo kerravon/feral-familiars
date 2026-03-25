@@ -136,34 +136,37 @@ class GeneralCog(commands.Cog):
         # 1. Creation Costs
         ritual_text = (
             "To create a familiar, you need a Spirit and matching Essences:\n"
-            "▫️ **Common:** 10 Essences\n"
-            "▫️ **Uncommon:** 20 Essences\n"
-            "▫️ **Rare:** 40 Essences\n"
-            "▫️ **Legendary:** 80 Essences"
+            "▫️ **Common:** 10 | **Uncommon:** 20\n"
+            "▫️ **Rare:** 40 | **Legendary:** 80\n\n"
+            "🕯️ **Restless Spirits:** Require an extra infusion of **Arcane Essence**:\n"
+            "▫️ +5 (Common) to +25 (Legendary)"
         )
         embed.add_field(name="✨ Familiar Creation", value=ritual_text, inline=False)
         
-        # 2. Gifting (Bestow) Taxes
+        # 2. Resonance Logic
+        resonance_text = (
+            "Passives must be manually enabled using **/familiar [name]**:\n"
+            "🔥 **Resonance:** Active for **2 hours** once per day.\n"
+            "✨ **Arcane:** Doubles ANY essence + Server Timer Bonus.\n"
+            "💀 **Restless:** % Chance to 'Anchor' fading spirits for the server."
+        )
+        embed.add_field(name="🔥 Passive Resonance", value=resonance_text, inline=False)
+
+        # 3. Gifting (Bestow) Taxes
         bestow_text = (
             "When you bestow a gift, **YOU** pay a ritual fee:\n"
-            "▫️ **Essences:** 2% of total (Min 1)\n"
-            "▫️ **Common Spirit:** 1 Essence\n"
-            "▫️ **Uncommon Spirit:** 3 Essences\n"
-            "▫️ **Rare Spirit:** 5 Essences\n"
-            "▫️ **Legendary Spirit:** 13 Essences"
+            "▫️ **Essences:** 2% (Min 1)\n"
+            "▫️ **Spirits:** 1-13 based on rarity"
         )
-        embed.add_field(name="🎁 Gifting (Bestow)", value=bestow_text, inline=True)
+        embed.add_field(name="🎁 Gifting", value=bestow_text, inline=True)
         
-        # 3. Trading (Transmute) Taxes
+        # 4. Trading (Transmute) Taxes
         transmute_text = (
             "When transmuting, **THE RECIPIENT** pays a fee:\n"
-            "▫️ **Essences:** 5% of total (Min 1)\n"
-            "▫️ **Common Spirit:** 2 Essences\n"
-            "▫️ **Uncommon Spirit:** 5 Essences\n"
-            "▫️ **Rare Spirit:** 10 Essences\n"
-            "▫️ **Legendary Spirit:** 25 Essences"
+            "▫️ **Essences:** 5% (Min 1)\n"
+            "▫️ **Spirits:** 2-25 based on rarity"
         )
-        embed.add_field(name="🧪 Trading (Transmute)", value=transmute_text, inline=True)
+        embed.add_field(name="🧪 Trading", value=transmute_text, inline=True)
         
         embed.set_footer(text="Fees can be paid with ANY essence type of your choice.")
         await interaction.response.send_message(embed=embed)

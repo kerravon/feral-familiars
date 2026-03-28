@@ -34,7 +34,7 @@ class GameConstants:
 
     # Essence Images (URLs)
     ESSENCE_IMAGES = {
-        EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png",
+        EARTH: "https://i.ibb.co/vCpGNdMt/earth-essence.webp",
         WIND: "https://i.ibb.co/gb3RfzWM/wind-essence.webp",
         FIRE: "https://i.ibb.co/rGGztGCk/fire-essence.webp",
         ARCANE: "https://i.ibb.co/qLJyg17w/arcane-essence.webp",
@@ -43,7 +43,7 @@ class GameConstants:
 
     # Images shown AFTER capture (Bound)
     BOUND_IMAGES = {
-        EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png",
+        EARTH: "https://i.ibb.co/bjqh1k1Y/earth-essence-bound.webp",
         WIND: "https://i.ibb.co/DHX9sJx0/wind-essence-bound.webp",
         FIRE: "https://i.ibb.co/8n8CLp4Z/fire-essence-bound.webp",
         ARCANE: "https://i.ibb.co/DPY5GgZ2/arcane-essence-bound.webp",

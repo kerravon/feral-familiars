@@ -49,6 +49,7 @@ class FeralFamiliarsBot(commands.Bot):
     @tasks.loop(seconds=Config.CLEANUP_INTERVAL_SECONDS)
     async def cleanup_loop(self):
         async with AsyncSessionLocal() as session:
+            await ConfigService.cleanup_expired_lures(session)
             expired_encounters = await EncounterService.get_expired_encounters(session)
             if expired_encounters:
                 logger.info(f"Cleanup: Found {len(expired_encounters)} expired encounters.")
@@ -122,26 +123,37 @@ class FeralFamiliarsBot(commands.Bot):
     async def spawn_loop(self):
         async with AsyncSessionLocal() as session:
             active_configs = await ConfigService.get_active_channels(session)
-            logger.info(f"Spawn check: {len(active_configs)} active channels. Chance: {Config.SPAWN_CHANCE_PERCENT}%")
             
             for config in active_configs:
                 channel = self.get_channel(config.channel_id)
                 if not channel: continue
                 
-                # Roll for spawn
-                if random.randint(1, 100) > Config.SPAWN_CHANCE_PERCENT:
-                    continue
+                # Check for active Lure
+                now = datetime.now()
+                is_lured = config.active_lure_type and config.lure_expires_at and config.lure_expires_at > now
+                
+                # Roll for spawn (100% if lured, otherwise random)
+                if not is_lured:
+                    if random.randint(1, 100) > Config.SPAWN_CHANCE_PERCENT:
+                        continue
+                    spawn_type = "spirit" if random.random() < 0.2 else "essence"
+                else:
+                    spawn_type = config.active_lure_type
+                    logger.info(f"Lure active in {channel.name}: Spawning {spawn_type}")
 
-                type = "spirit" if random.random() < 0.2 else "essence"
-                encounter = await EncounterService.spawn_encounter(session, channel.id, channel.guild.id, type)
+                encounter = await EncounterService.spawn_encounter(session, channel.id, channel.guild.id, spawn_type)
                 
                 if encounter:
+                    title = f"A {encounter.subtype} {encounter.type.title()} has appeared!"
+                    if is_lured:
+                        title = f"✨ INCENSE: {title}"
+                    
                     embed = discord.Embed(
-                        title=f"A {encounter.subtype} {encounter.type.title()} has appeared!",
-                        description=f"Type `bind` to capture this {encounter.type}." if type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
-                        color=discord.Color.blue() if type == "essence" else discord.Color.purple()
+                        title=title,
+                        description=f"Type `bind` to capture this {encounter.type}." if spawn_type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
+                        color=discord.Color.gold() if is_lured else (discord.Color.blue() if spawn_type == "essence" else discord.Color.purple())
                     )
-                    if type == "essence":
+                    if spawn_type == "essence":
                         embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
                     else:
                         embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(encounter.subtype))
@@ -244,6 +256,24 @@ async def on_message(message: discord.Message):
             session.add(new_fam)
             await session.commit()
             await message.reply(f"🎁 **Debug Gift:** You have received **{fname}**!")
+        return
+
+    # Manual Lure for testing
+    if content.startswith("!givelure") and message.author.guild_permissions.manage_guild:
+        parts = content.split()
+        # Usage: !givelure [essence/spirit] [minutes]
+        ltype = parts[1].lower() if len(parts) > 1 else "essence"
+        mins = int(parts[2]) if len(parts) > 2 else 30
+
+        async with AsyncSessionLocal() as session:
+            from bot.services.inventory_service import InventoryService
+            user = await InventoryService.get_or_create_user(session, message.author.id)
+            if ltype == "spirit":
+                user.stored_spirit_lure_mins += mins
+            else:
+                user.stored_essence_lure_mins += mins
+            await session.commit()
+            await message.reply(f"🕯️ **Debug Lure:** Added **{mins} minutes** of {ltype} incense to your inventory.")
         return
 
     if content in ["bind", "bind spirit"]:

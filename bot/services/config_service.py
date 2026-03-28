@@ -1,7 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from bot.models.config import ChannelConfig
-from typing import List
+from bot.models.base import User
+from typing import List, Tuple
+from datetime import datetime, timedelta
 
 class ConfigService:
     @staticmethod
@@ -35,3 +37,46 @@ class ConfigService:
         stmt = select(ChannelConfig).where(ChannelConfig.is_active == True)
         result = await session.execute(stmt)
         return list(result.scalars().all())
+
+    @staticmethod
+    async def activate_lure(session: AsyncSession, user_id: int, channel_id: int, lure_type: str, minutes: int) -> Tuple[bool, str]:
+        """Burns stored lure minutes to activate a lure in a channel."""
+        stmt_u = select(User).where(User.id == user_id)
+        res_u = await session.execute(stmt_u)
+        user = res_u.scalar_one_or_none()
+        
+        stmt_c = select(ChannelConfig).where(ChannelConfig.channel_id == channel_id)
+        res_c = await session.execute(stmt_c)
+        config = res_c.scalar_one_or_none()
+
+        if not user: return False, "User not found."
+        if not config or not config.is_active: return False, "Spawns are not enabled in this channel."
+        
+        if lure_type == "essence":
+            if user.stored_essence_lure_mins < minutes:
+                return False, f"Not enough Essence Incense. You have {user.stored_essence_lure_mins} mins."
+            user.stored_essence_lure_mins -= minutes
+        else:
+            if user.stored_spirit_lure_mins < minutes:
+                return False, f"Not enough Spirit Incense. You have {user.stored_spirit_lure_mins} mins."
+            user.stored_spirit_lure_mins -= minutes
+
+        now = datetime.now()
+        if config.active_lure_type == lure_type and config.lure_expires_at and config.lure_expires_at > now:
+            config.lure_expires_at += timedelta(minutes=minutes)
+        else:
+            config.active_lure_type = lure_type
+            config.lure_expires_at = now + timedelta(minutes=minutes)
+        
+        await session.commit()
+        return True, f"Ignited **{minutes} minutes** of {lure_type.title()} Incense!"
+
+    @staticmethod
+    async def cleanup_expired_lures(session: AsyncSession):
+        """Clears lures that have passed their expiry time."""
+        now = datetime.now()
+        stmt = update(ChannelConfig).where(
+            ChannelConfig.lure_expires_at < now
+        ).values(active_lure_type=None, lure_expires_at=None)
+        await session.execute(stmt)
+        await session.commit()

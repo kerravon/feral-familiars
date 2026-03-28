@@ -124,6 +124,7 @@ class FeralFamiliarsBot(commands.Bot):
     async def spawn_loop(self):
         async with AsyncSessionLocal() as session:
             active_configs = await ConfigService.get_active_channels(session)
+            logger.info(f"Spawn check: {len(active_configs)} active channels. Chance: {Config.SPAWN_CHANCE_PERCENT}%")
             
             for config in active_configs:
                 channel = self.get_channel(config.channel_id)

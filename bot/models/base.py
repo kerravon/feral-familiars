@@ -17,6 +17,7 @@ class User(Base):
     # Lure Storage (Minutes)
     stored_essence_lure_mins: Mapped[int] = mapped_column(default=0)
     stored_spirit_lure_mins: Mapped[int] = mapped_column(default=0)
+    stored_pure_lure_mins: Mapped[int] = mapped_column(default=0)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 

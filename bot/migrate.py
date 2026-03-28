@@ -18,6 +18,7 @@ async def migrate():
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_gift_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_essence_lure_mins INTEGER DEFAULT 0"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_spirit_lure_mins INTEGER DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_pure_lure_mins INTEGER DEFAULT 0"))
         
         # 2. Update 'familiars' table (For Passive Resonance and Scaling)
         print("Updating 'familiars' table...")
@@ -37,6 +38,7 @@ async def migrate():
         # 4. Update 'channel_configs' table
         print("Updating 'channel_configs' table...")
         await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS active_lure_type VARCHAR(20)"))
+        await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS active_lure_subtype VARCHAR(20)"))
         await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS lure_expires_at TIMESTAMP"))
 
         # 5. Create new tables

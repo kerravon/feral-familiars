@@ -30,6 +30,16 @@ If the output is too blurry, increase the quality (default is 80):
 python tools/optimize_assets.py path/to/image.png -q 95
 ```
 
+**Remove Solid Background:**
+If your generated image has a pure black or white background, you can attempt to make it transparent:
+```bash
+# For black backgrounds
+python tools/optimize_assets.py path/to/image.png --remove-bg black
+
+# For white backgrounds
+python tools/optimize_assets.py path/to/image.png --remove-bg white
+```
+
 The optimized images will be saved in the `optimized_assets/` folder.
 
 ## 📐 Image Standards

@@ -13,6 +13,11 @@ class User(Base):
     daily_spirits_gifted: Mapped[int] = mapped_column(default=0)
     daily_essences_gifted: Mapped[int] = mapped_column(default=0)
     last_gift_reset: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    
+    # Lure Storage (Minutes)
+    stored_essence_lure_mins: Mapped[int] = mapped_column(default=0)
+    stored_spirit_lure_mins: Mapped[int] = mapped_column(default=0)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     def __repr__(self) -> str:

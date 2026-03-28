@@ -16,6 +16,8 @@ async def migrate():
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_spirits_gifted INTEGER DEFAULT 0"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_essences_gifted INTEGER DEFAULT 0"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_gift_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_essence_lure_mins INTEGER DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_spirit_lure_mins INTEGER DEFAULT 0"))
         
         # 2. Update 'familiars' table (For Passive Resonance and Scaling)
         print("Updating 'familiars' table...")
@@ -32,7 +34,13 @@ async def migrate():
         # Ensure captured_by exists (it should, but just in case)
         await conn.execute(text("ALTER TABLE encounters ADD COLUMN IF NOT EXISTS captured_by BIGINT"))
 
-        # 4. Create new tables (SQLAlchemy's create_all will only create what's missing)
+        # 4. Update 'channel_configs' table
+        print("Updating 'channel_configs' table...")
+        await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS active_lure_type VARCHAR(20)"))
+        await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS lure_expires_at TIMESTAMP"))
+
+        # 5. Create new tables
+ (SQLAlchemy's create_all will only create what's missing)
         print("Ensuring all tables exist...")
         from bot.models.base import Base
         from bot.models.trade import Trade, TradeOffer

@@ -66,24 +66,34 @@ class GeneralCog(commands.Cog):
 
     @discord.app_commands.command(name="incense", description="Ignite spectral incense to guarantee spawns in this channel for a set time.")
     @discord.app_commands.describe(
-        lure_type="The type of energy to attract (Spirit or Essence)",
-        minutes="How many minutes to burn (must have stored time)"
+        lure_type="The type of energy to attract (Spirit, Essence, or Targeted)",
+        minutes="How many minutes to burn (must have stored time)",
+        element="If using Pure Incense, which element to attract?"
     )
     @discord.app_commands.choices(lure_type=[
         discord.app_commands.Choice(name="Spirit Incense", value="spirit"),
-        discord.app_commands.Choice(name="Essence Incense", value="essence")
+        discord.app_commands.Choice(name="Essence Incense", value="essence"),
+        discord.app_commands.Choice(name="Pure Incense (Targeted)", value="pure")
     ])
-    async def incense(self, interaction: discord.Interaction, lure_type: str, minutes: int):
+    @discord.app_commands.choices(element=[
+        discord.app_commands.Choice(name=e, value=e) for e in ["Earth", "Wind", "Fire", "Arcane", "Water"]
+    ])
+    async def incense(self, interaction: discord.Interaction, lure_type: str, minutes: int, element: Optional[str] = None):
         if minutes <= 0:
             await interaction.response.send_message("Minutes must be a positive number.", ephemeral=True)
             return
+        
+        if lure_type == "pure" and not element:
+            await interaction.response.send_message("Pure Incense requires you to choose an **element**.", ephemeral=True)
+            return
 
         async with AsyncSessionLocal() as session:
-            success, msg = await ConfigService.activate_lure(session, interaction.user.id, interaction.channel_id, lure_type, minutes)
+            success, msg = await ConfigService.activate_lure(session, interaction.user.id, interaction.channel_id, lure_type, minutes, subtype=element)
             if success:
+                target_text = f"**{element}** " if element else ""
                 embed = discord.Embed(
                     title="🕯️ Incense Ignited!",
-                    description=f"{interaction.user.mention} has lit **{lure_type.title()} Incense**!\nSpawns are now **GUARANTEED** in this channel for the next **{minutes} minutes**.",
+                    description=f"{interaction.user.mention} has lit **{lure_type.title()} Incense**!\n{target_text}Spawns are now **GUARANTEED** in this channel for the next **{minutes} minutes**.",
                     color=discord.Color.gold()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -112,7 +122,8 @@ class GeneralCog(commands.Cog):
             embed.add_field(name="Spirits (Max 5)", value=s_text, inline=True)
 
             l_text = f"✨ **Essence Incense:** {db_user.stored_essence_lure_mins} mins\n"
-            l_text += f"👻 **Spirit Incense:** {db_user.stored_spirit_lure_mins} mins"
+            l_text += f"👻 **Spirit Incense:** {db_user.stored_spirit_lure_mins} mins\n"
+            l_text += f"💎 **Pure Incense:** {db_user.stored_pure_lure_mins} mins"
             embed.add_field(name="Stored Incense", value=l_text, inline=False)
             
             await interaction.response.send_message(embed=embed)

@@ -39,7 +39,7 @@ class ConfigService:
         return list(result.scalars().all())
 
     @staticmethod
-    async def activate_lure(session: AsyncSession, user_id: int, channel_id: int, lure_type: str, minutes: int) -> Tuple[bool, str]:
+    async def activate_lure(session: AsyncSession, user_id: int, channel_id: int, lure_type: str, minutes: int, subtype: str = None) -> Tuple[bool, str]:
         """Burns stored lure minutes to activate a lure in a channel."""
         stmt_u = select(User).where(User.id == user_id)
         res_u = await session.execute(stmt_u)
@@ -56,16 +56,23 @@ class ConfigService:
             if user.stored_essence_lure_mins < minutes:
                 return False, f"Not enough Essence Incense. You have {user.stored_essence_lure_mins} mins."
             user.stored_essence_lure_mins -= minutes
-        else:
+        elif lure_type == "spirit":
             if user.stored_spirit_lure_mins < minutes:
                 return False, f"Not enough Spirit Incense. You have {user.stored_spirit_lure_mins} mins."
             user.stored_spirit_lure_mins -= minutes
+        elif lure_type == "pure":
+            if user.stored_pure_lure_mins < minutes:
+                return False, f"Not enough Pure Incense. You have {user.stored_pure_lure_mins} mins."
+            user.stored_pure_lure_mins -= minutes
+            if not subtype: return False, "Pure Incense requires a target element."
 
         now = datetime.now()
-        if config.active_lure_type == lure_type and config.lure_expires_at and config.lure_expires_at > now:
+        # If a lure is already active, extend it. Otherwise start fresh.
+        if config.active_lure_type == lure_type and config.active_lure_subtype == subtype and config.lure_expires_at and config.lure_expires_at > now:
             config.lure_expires_at += timedelta(minutes=minutes)
         else:
             config.active_lure_type = lure_type
+            config.active_lure_subtype = subtype
             config.lure_expires_at = now + timedelta(minutes=minutes)
         
         await session.commit()
@@ -77,6 +84,6 @@ class ConfigService:
         now = datetime.now()
         stmt = update(ChannelConfig).where(
             ChannelConfig.lure_expires_at < now
-        ).values(active_lure_type=None, lure_expires_at=None)
+        ).values(active_lure_type=None, active_lure_subtype=None, lure_expires_at=None)
         await session.execute(stmt)
         await session.commit()

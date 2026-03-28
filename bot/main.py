@@ -137,11 +137,16 @@ class FeralFamiliarsBot(commands.Bot):
                     if random.randint(1, 100) > Config.SPAWN_CHANCE_PERCENT:
                         continue
                     spawn_type = "spirit" if random.random() < 0.2 else "essence"
+                    spawn_subtype = None
                 else:
-                    spawn_type = config.active_lure_type
-                    logger.info(f"Lure active in {channel.name}: Spawning {spawn_type}")
+                    spawn_type = "essence" if config.active_lure_type == "pure" else config.active_lure_type
+                    spawn_subtype = config.active_lure_subtype # Will be None for spirit/essence types
+                    logger.info(f"Lure active in {channel.name}: Spawning {spawn_type} ({spawn_subtype or 'random'})")
 
-                encounter = await EncounterService.spawn_encounter(session, channel.id, channel.guild.id, spawn_type)
+                encounter = await EncounterService.spawn_encounter(
+                    session, channel.id, channel.guild.id, spawn_type, 
+                    override_subtype=spawn_subtype
+                )
                 
                 if encounter:
                     title = f"A {encounter.subtype} {encounter.type.title()} has appeared!"
@@ -261,7 +266,7 @@ async def on_message(message: discord.Message):
     # Manual Lure for testing
     if content.startswith("!givelure") and message.author.guild_permissions.manage_guild:
         parts = content.split()
-        # Usage: !givelure [essence/spirit] [minutes]
+        # Usage: !givelure [essence/spirit/pure] [minutes]
         ltype = parts[1].lower() if len(parts) > 1 else "essence"
         mins = int(parts[2]) if len(parts) > 2 else 30
 
@@ -270,6 +275,8 @@ async def on_message(message: discord.Message):
             user = await InventoryService.get_or_create_user(session, message.author.id)
             if ltype == "spirit":
                 user.stored_spirit_lure_mins += mins
+            elif ltype == "pure":
+                user.stored_pure_lure_mins += mins
             else:
                 user.stored_essence_lure_mins += mins
             await session.commit()

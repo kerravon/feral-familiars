@@ -50,11 +50,12 @@ class FeralFamiliarsBot(commands.Bot):
     async def cleanup_loop(self):
         async with AsyncSessionLocal() as session:
             expired_encounters = await EncounterService.get_expired_encounters(session)
+            if expired_encounters:
+                logger.info(f"Cleanup: Found {len(expired_encounters)} expired encounters.")
             
             for e in expired_encounters:
                 # --- Soul Anchor (Restless Passive) ---
                 if e.type == "spirit":
-                    # Check if any user in guild has an active RESONATING Restless familiar
                     from sqlalchemy import select
                     from bot.models.familiar import Familiar
                     from datetime import datetime
@@ -69,35 +70,27 @@ class FeralFamiliarsBot(commands.Bot):
                     anchor_fam = res.scalar_one_or_none()
                     
                     if anchor_fam:
-                        # 20-50% chance based on rarity
                         chances = {"common": 0.2, "uncommon": 0.3, "rare": 0.4, "legendary": 0.5}
                         if random.random() < chances.get(anchor_fam.rarity, 0.2):
-                            # SAVE the spirit!
                             from datetime import timedelta
                             e.expires_at = now + timedelta(seconds=30)
-                            e.is_active = True
                             await session.commit()
                             
-                            channel = self.get_channel(e.channel_id) or await self.fetch_channel(e.channel_id)
-                            msg = await channel.fetch_message(e.message_id)
-                            embed = msg.embeds[0]
-                            
-                            # Fetch user name for the public boost
-                            user = self.get_user(anchor_fam.user_id) or await self.fetch_user(anchor_fam.user_id)
-                            user_name = user.display_name if user else "A mysterious master"
-                            
-                            embed.set_footer(text=f"✨ SOUL ANCHOR: {user_name}'s {anchor_fam.name} has anchored this spirit for +30s!")
-                            await msg.edit(embed=embed)
-                            logger.info(f"Soul Anchor saved spirit {e.id} (Owner: {user_name})")
-                            continue
+                            try:
+                                channel = self.get_channel(e.channel_id) or await self.fetch_channel(e.channel_id)
+                                msg = await channel.fetch_message(e.message_id)
+                                embed = msg.embeds[0]
+                                user = self.get_user(anchor_fam.user_id) or await self.fetch_user(anchor_fam.user_id)
+                                user_name = user.display_name if user else "A mysterious master"
+                                embed.set_footer(text=f"✨ SOUL ANCHOR: {user_name}'s {anchor_fam.name} has anchored this spirit for +30s!")
+                                await msg.edit(embed=embed)
+                                logger.info(f"Soul Anchor saved spirit {e.id}")
+                                continue
+                            except: pass
 
-                channel = self.get_channel(e.channel_id)
-                if not channel:
-                    try:
-                        channel = await self.fetch_channel(e.channel_id)
-                    except: continue
-                
+                # 1. Attempt Visual Fade
                 try:
+                    channel = self.get_channel(e.channel_id) or await self.fetch_channel(e.channel_id)
                     msg = await channel.fetch_message(e.message_id)
                     embed = msg.embeds[0]
                     
@@ -110,10 +103,16 @@ class FeralFamiliarsBot(commands.Bot):
                         
                     embed.set_image(url=None)
                     embed.color = discord.Color.dark_grey()
+                    embed.set_footer(text=None) # Clear anchor info
                     await msg.edit(embed=embed)
-                    logger.info(f"Cleaned up expired encounter {e.id}")
+                    logger.info(f"Faded expired message {e.message_id}")
                 except Exception as ex:
-                    logger.warning(f"Could not update expired message {e.message_id}: {ex}")
+                    # Message might be deleted, just log and continue
+                    logger.debug(f"Could not fade message {e.message_id}: {ex}")
+
+                # 2. Finalize Database State
+                e.is_active = False
+                await session.commit()
 
     @cleanup_loop.before_loop
     async def before_cleanup_loop(self):

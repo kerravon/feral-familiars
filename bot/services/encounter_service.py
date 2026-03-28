@@ -28,13 +28,8 @@ class EncounterService:
         existing = result.scalar_one_or_none()
         
         if existing:
-            # If the existing encounter is past its expires_at, mark it as inactive
-            if datetime.now() > existing.expires_at:
-                existing.is_active = False
-                await session.commit()
-            else:
-                # Still active and fresh, don't spawn another one
-                return None
+            # Still an active record in DB, wait for cleanup_loop to fade it
+            return None
         
         # 2. Determine Rarity and Duration
         duration_seconds = 45 # Default

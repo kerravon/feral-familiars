@@ -73,7 +73,6 @@ class FeralFamiliarsBot(commands.Bot):
                         chances = {"common": 0.2, "uncommon": 0.3, "rare": 0.4, "legendary": 0.5}
                         if random.random() < chances.get(anchor_fam.rarity, 0.2):
                             # SAVE the spirit!
-                            e.expires_at = now + asyncio.run_coroutine_threadsafe(asyncio.sleep(0), asyncio.get_event_loop())._loop.time() # This is a bit complex for a simple timestamp, let's just use now + 30s
                             from datetime import timedelta
                             e.expires_at = now + timedelta(seconds=30)
                             e.is_active = True
@@ -186,7 +185,6 @@ async def on_message(message: discord.Message):
     # Manual Spawn for testing
     if content.startswith("!testspawn") and message.author.guild_permissions.manage_channels:
         parts = content.split()
-        # Usage: !testspawn [essence/spirit] [subtype] [rarity]
         target_type = parts[1] if len(parts) > 1 else None
         target_subtype = parts[2].title() if len(parts) > 2 else None
         target_rarity = parts[3].lower() if len(parts) > 3 else None
@@ -196,12 +194,8 @@ async def on_message(message: discord.Message):
                 target_type = "spirit" if random.random() < 0.3 else "essence"
             
             encounter = await EncounterService.spawn_encounter(
-                session, 
-                message.channel.id, 
-                message.guild.id, 
-                target_type,
-                override_subtype=target_subtype,
-                override_rarity=target_rarity
+                session, message.channel.id, message.guild.id, target_type,
+                override_subtype=target_subtype, override_rarity=target_rarity
             )
             
             if encounter:
@@ -212,10 +206,8 @@ async def on_message(message: discord.Message):
                 )
                 if encounter.type == "essence":
                     embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
-                    
                 if encounter.rarity:
                     embed.add_field(name="Rarity", value=encounter.rarity.upper())
-                
                 if getattr(encounter, "_temp_anchor_active", False):
                     embed.set_footer(text="✨ Temporal Anchor Active: Spawns stay 15s longer!")
 
@@ -229,7 +221,6 @@ async def on_message(message: discord.Message):
     # Manual Familiar for testing
     if content.startswith("!givefamiliar") and message.author.guild_permissions.manage_guild:
         parts = content.split()
-        # Usage: !givefamiliar [essence_type] [rarity] [spirit_type]
         etype = parts[1].title() if len(parts) > 1 else "Fire"
         rarity = parts[2].lower() if len(parts) > 2 else "common"
         stype = parts[3].title() if len(parts) > 3 else "Feline"
@@ -241,31 +232,24 @@ async def on_message(message: discord.Message):
         async with AsyncSessionLocal() as session:
             from bot.services.inventory_service import InventoryService
             await InventoryService.get_or_create_user(session, message.author.id)
-            
             adj = random.choice(GameConstants.ESSENCE_ADJECTIVES[etype][rarity])
             noun = random.choice(GameConstants.SPIRIT_NOUNS.get(stype, GameConstants.SPIRIT_NOUNS["Feline"])[rarity])
             fname = f"DEBUG {adj} {noun}"
 
             from bot.models.familiar import Familiar
-            new_fam = Familiar(
-                user_id=message.author.id,
-                spirit_type=stype,
-                essence_type=etype,
-                rarity=rarity,
-                name=fname
-            )
+            new_fam = Familiar(user_id=message.author.id, spirit_type=stype, essence_type=etype, rarity=rarity, name=fname)
             session.add(new_fam)
             await session.commit()
             await message.reply(f"🎁 **Debug Gift:** You have received **{fname}**!")
         return
 
     if content in ["bind", "bind spirit"]:
+        logger.info(f"Capture attempt by {message.author.name}: {content}")
         async with AsyncSessionLocal() as session:
             encounter, result = await EncounterService.process_capture_attempt(session, message.channel.id, message.author.id, content)
             if encounter:
                 await message.reply(result)
                 await asyncio.sleep(0.5)
-                
                 try:
                     msg = await message.channel.fetch_message(encounter.message_id)
                     new_embed = discord.Embed(
@@ -276,21 +260,17 @@ async def on_message(message: discord.Message):
                     bound_url = GameConstants.BOUND_IMAGES.get(encounter.subtype)
                     if bound_url:
                         new_embed.set_image(url=bound_url)
-                    else:
-                        logger.warning(f"No bound image found for {encounter.subtype}")
-                    
                     if encounter.rarity:
                         new_embed.add_field(name="Rarity", value=encounter.rarity.upper())
-                    
                     await msg.edit(embed=new_embed)
-                    logger.info(f"Updated message {encounter.message_id} with bound image for {encounter.subtype}")
                 except Exception as e:
-                    logger.error(f"Failed to update capture message: {e}", exc_info=True)
+                    logger.error(f"Failed to update capture message: {e}")
+                
                 if encounter.type == "essence":
                     passive_msg = await PassiveService.trigger_passive_bonus(session, message.author.id, encounter.subtype)
                     if passive_msg:
                         await message.channel.send(passive_msg)
-            elif result and result not in ["The essence has faded...", "No active encounter in this channel."]:
+            elif result:
                 await message.reply(result, delete_after=5)
 
     await bot.process_commands(message)

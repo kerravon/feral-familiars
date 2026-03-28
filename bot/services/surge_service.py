@@ -81,6 +81,8 @@ class SurgeService:
                 
                 if type == "essence":
                     embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(subtype))
+                else:
+                    embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(subtype))
                 if rarity:
                     embed.add_field(name="Rarity", value=rarity.upper())
                 

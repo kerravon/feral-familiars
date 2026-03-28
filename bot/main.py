@@ -143,6 +143,8 @@ class FeralFamiliarsBot(commands.Bot):
                     )
                     if type == "essence":
                         embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
+                    else:
+                        embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(encounter.subtype))
                     
                     if encounter.rarity:
                         embed.add_field(name="Rarity", value=encounter.rarity.upper())
@@ -205,6 +207,8 @@ async def on_message(message: discord.Message):
                 )
                 if encounter.type == "essence":
                     embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
+                else:
+                    embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(encounter.subtype))
                 if encounter.rarity:
                     embed.add_field(name="Rarity", value=encounter.rarity.upper())
                 if getattr(encounter, "_temp_anchor_active", False):
@@ -256,7 +260,11 @@ async def on_message(message: discord.Message):
                         description=f"The {encounter.subtype} {encounter.type} has been bound.",
                         color=discord.Color.green()
                     )
-                    bound_url = GameConstants.BOUND_IMAGES.get(encounter.subtype)
+                    if encounter.type == "essence":
+                        bound_url = GameConstants.BOUND_IMAGES.get(encounter.subtype)
+                    else:
+                        bound_url = GameConstants.SPIRIT_BOUND_IMAGES.get(encounter.subtype)
+                    
                     if bound_url:
                         new_embed.set_image(url=bound_url)
                     if encounter.rarity:

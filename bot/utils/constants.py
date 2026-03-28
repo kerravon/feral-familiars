@@ -35,19 +35,36 @@ class GameConstants:
     # Essence Images (URLs)
     ESSENCE_IMAGES = {
         EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png",
-        WIND: "https://i.ibb.co/wZM4kYPf/air-essence2.png",
-        FIRE: "https://i.ibb.co/C36Dz776/fire-essence2.webp",
-        ARCANE: "https://i.ibb.co/8X8v8X8.png", # Still needs an image!
-        WATER: "https://i.ibb.co/zTmtRwx1/water-essence.png"
+        WIND: "https://i.ibb.co/gb3RfzWM/wind-essence.webp",
+        FIRE: "https://i.ibb.co/rGGztGCk/fire-essence.webp",
+        ARCANE: "https://i.ibb.co/qLJyg17w/arcane-essence.webp",
+        WATER: "https://i.ibb.co/wFFV89H0/water-essence.webp"
     }
 
     # Images shown AFTER capture (Bound)
     BOUND_IMAGES = {
-        EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png", # Replace with bound versions later!
-        WIND: "https://i.ibb.co/S4w3K1Tg/air-essence-bound2.png",
-        FIRE: "https://i.ibb.co/FdZ7Ltt/fire-essence2-bound.webp",
-        ARCANE: "https://i.ibb.co/8X8v8X8.png",
-        WATER: "https://i.ibb.co/zTmtRwx1/water-essence.png"
+        EARTH: "https://i.ibb.co/ymH9mNXJ/earth-essence.png",
+        WIND: "https://i.ibb.co/DHX9sJx0/wind-essence-bound.webp",
+        FIRE: "https://i.ibb.co/8n8CLp4Z/fire-essence-bound.webp",
+        ARCANE: "https://i.ibb.co/DPY5GgZ2/arcane-essence-bound.webp",
+        WATER: "https://i.ibb.co/0VjcZH9N/water-essence-bound.webp"
+    }
+
+    # Spirit Images
+    SPIRIT_IMAGES = {
+        FELINE: "https://i.ibb.co/wZM4kYPf/air-essence2.png", # Still need Feline! Reusing air for now
+        CANINE: "https://i.ibb.co/cSdQpdBq/canine-spirit.webp",
+        WINGED: "https://i.ibb.co/Vpt1wK9T/winged-spirit.webp",
+        GOBLIN: "https://i.ibb.co/gL9CWVKP/goblin-spirit.webp",
+        RESTLESS: "https://i.ibb.co/mCvQ1LHH/restless-spirit.webp"
+    }
+
+    SPIRIT_BOUND_IMAGES = {
+        FELINE: "https://i.ibb.co/S4w3K1Tg/air-essence-bound2.png", # Still need Feline!
+        CANINE: "https://i.ibb.co/600vcDKf/canine-spirit-bound.webp",
+        WINGED: "https://i.ibb.co/j9dpkPYF/winged-spirit-bound.webp",
+        GOBLIN: "https://i.ibb.co/Csp2yHNc/goblin-spirit-bound.webp",
+        RESTLESS: "https://i.ibb.co/jvpcjZkt/restless-spirit-bound.webp"
     }
 
     # Word Banks for Dynamic Naming

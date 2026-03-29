@@ -101,7 +101,6 @@ class FeralFamiliarsBot(commands.Bot):
                         embed.title = "🕯️ The Spirit has vanished..."
                         embed.description = "The mystical creature has returned to the spirit realm."
                         
-                    embed.set_image(url=None)
                     embed.color = discord.Color.dark_grey()
                     embed.set_footer(text=None)
                     await msg.edit(embed=embed)

@@ -4,7 +4,7 @@ from discord.ext import commands, tasks
 import random
 import logging
 from typing import Optional
-from datetime import datetime, timedelta
+import datetime
 
 from bot.db import init_db, AsyncSessionLocal
 from bot.services.encounter_service import EncounterService
@@ -60,7 +60,7 @@ class FeralFamiliarsBot(commands.Bot):
                 if e.type == "spirit":
                     from sqlalchemy import select
                     from bot.models.familiar import Familiar
-                    now = datetime.now()
+                    now = datetime.datetime.now()
                     
                     stmt = select(Familiar).where(
                         Familiar.is_active == True,
@@ -73,7 +73,7 @@ class FeralFamiliarsBot(commands.Bot):
                     if anchor_fam:
                         chances = {"common": 0.2, "uncommon": 0.3, "rare": 0.4, "legendary": 0.5}
                         if random.random() < chances.get(anchor_fam.rarity, 0.2):
-                            e.expires_at = now + timedelta(seconds=30)
+                            e.expires_at = now + datetime.timedelta(seconds=30)
                             await session.commit()
                             
                             try:
@@ -127,7 +127,7 @@ class FeralFamiliarsBot(commands.Bot):
                     channel = self.get_channel(config.channel_id)
                     if not channel: continue
                     
-                    now = datetime.now()
+                    now = datetime.datetime.now()
                     is_lured = config.active_lure_type and config.lure_expires_at and config.lure_expires_at > now
                     
                     if not is_lured:

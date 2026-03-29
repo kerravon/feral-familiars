@@ -4,6 +4,7 @@ from discord.ext import commands, tasks
 import random
 import logging
 from typing import Optional
+from datetime import datetime, timedelta
 
 from bot.db import init_db, AsyncSessionLocal
 from bot.services.encounter_service import EncounterService
@@ -59,7 +60,6 @@ class FeralFamiliarsBot(commands.Bot):
                 if e.type == "spirit":
                     from sqlalchemy import select
                     from bot.models.familiar import Familiar
-                    from datetime import datetime
                     now = datetime.now()
                     
                     stmt = select(Familiar).where(
@@ -73,7 +73,6 @@ class FeralFamiliarsBot(commands.Bot):
                     if anchor_fam:
                         chances = {"common": 0.2, "uncommon": 0.3, "rare": 0.4, "legendary": 0.5}
                         if random.random() < chances.get(anchor_fam.rarity, 0.2):
-                            from datetime import timedelta
                             e.expires_at = now + timedelta(seconds=30)
                             await session.commit()
                             
@@ -104,11 +103,10 @@ class FeralFamiliarsBot(commands.Bot):
                         
                     embed.set_image(url=None)
                     embed.color = discord.Color.dark_grey()
-                    embed.set_footer(text=None) # Clear anchor info
+                    embed.set_footer(text=None)
                     await msg.edit(embed=embed)
                     logger.info(f"Faded expired message {e.message_id}")
                 except Exception as ex:
-                    # Message might be deleted, just log and continue
                     logger.debug(f"Could not fade message {e.message_id}: {ex}")
 
                 # 2. Finalize Database State
@@ -125,54 +123,56 @@ class FeralFamiliarsBot(commands.Bot):
             active_configs = await ConfigService.get_active_channels(session)
             
             for config in active_configs:
-                channel = self.get_channel(config.channel_id)
-                if not channel: continue
-                
-                # Check for active Lure
-                now = datetime.now()
-                is_lured = config.active_lure_type and config.lure_expires_at and config.lure_expires_at > now
-                
-                # Roll for spawn (100% if lured, otherwise random)
-                if not is_lured:
-                    if random.randint(1, 100) > Config.SPAWN_CHANCE_PERCENT:
-                        continue
-                    spawn_type = "spirit" if random.random() < 0.2 else "essence"
-                    spawn_subtype = None
-                else:
-                    spawn_type = "essence" if config.active_lure_type == "pure" else config.active_lure_type
-                    spawn_subtype = config.active_lure_subtype # Will be None for spirit/essence types
-                    logger.info(f"Lure active in {channel.name}: Spawning {spawn_type} ({spawn_subtype or 'random'})")
-
-                encounter = await EncounterService.spawn_encounter(
-                    session, channel.id, channel.guild.id, spawn_type, 
-                    override_subtype=spawn_subtype
-                )
-                
-                if encounter:
-                    title = f"A {encounter.subtype} {encounter.type.title()} has appeared!"
-                    if is_lured:
-                        title = f"✨ INCENSE: {title}"
+                try:
+                    channel = self.get_channel(config.channel_id)
+                    if not channel: continue
                     
-                    embed = discord.Embed(
-                        title=title,
-                        description=f"Type `bind` to capture this {encounter.type}." if spawn_type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
-                        color=discord.Color.gold() if is_lured else (discord.Color.blue() if spawn_type == "essence" else discord.Color.purple())
-                    )
-                    if spawn_type == "essence":
-                        embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
+                    now = datetime.now()
+                    is_lured = config.active_lure_type and config.lure_expires_at and config.lure_expires_at > now
+                    
+                    if not is_lured:
+                        if random.randint(1, 100) > Config.SPAWN_CHANCE_PERCENT:
+                            continue
+                        spawn_type = "spirit" if random.random() < 0.2 else "essence"
+                        spawn_subtype = None
                     else:
-                        embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(encounter.subtype))
-                    
-                    if encounter.rarity:
-                        embed.add_field(name="Rarity", value=encounter.rarity.upper())
-                    
-                    if getattr(encounter, "_temp_anchor_active", False):
-                        embed.set_footer(text="✨ Temporal Anchor Active: Spawns stay 15s longer!")
+                        spawn_type = "essence" if config.active_lure_type == "pure" else config.active_lure_type
+                        spawn_subtype = config.active_lure_subtype
+                        logger.info(f"Lure active in {channel.name}: Spawning {spawn_type} ({spawn_subtype or 'random'})")
 
-                    msg = await channel.send(embed=embed)
-                    encounter.message_id = msg.id
-                    await session.commit()
-                    logger.info(f"Spawned {type} in {channel.name} ({channel.guild.name})")
+                    encounter = await EncounterService.spawn_encounter(
+                        session, channel.id, channel.guild.id, spawn_type, 
+                        override_subtype=spawn_subtype
+                    )
+                    
+                    if encounter:
+                        title = f"A {encounter.subtype} {encounter.type.title()} has appeared!"
+                        if is_lured:
+                            title = f"✨ INCENSE: {title}"
+                        
+                        embed = discord.Embed(
+                            title=title,
+                            description=f"Type `bind` to capture this {encounter.type}." if spawn_type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
+                            color=discord.Color.gold() if is_lured else (discord.Color.blue() if spawn_type == "essence" else discord.Color.purple())
+                        )
+                        if spawn_type == "essence":
+                            embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
+                        else:
+                            embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(encounter.subtype))
+                        
+                        if encounter.rarity:
+                            embed.add_field(name="Rarity", value=encounter.rarity.upper())
+                        
+                        if getattr(encounter, "_temp_anchor_active", False):
+                            embed.set_footer(text="✨ Temporal Anchor Active: Spawns stay 15s longer!")
+
+                        msg = await channel.send(embed=embed)
+                        encounter.message_id = msg.id
+                        await session.commit() # ENSURE COMMIT
+                        logger.info(f"Spawned {spawn_type} in {channel.name} (MsgID: {msg.id})")
+                except Exception as e:
+                    logger.error(f"Error in spawn_loop for channel {config.channel_id}: {e}", exc_info=True)
+                    continue
 
     @spawn_loop.before_loop
     async def before_spawn_loop(self):
@@ -208,34 +208,37 @@ async def on_message(message: discord.Message):
         target_rarity = parts[3].lower() if len(parts) > 3 else None
 
         async with AsyncSessionLocal() as session:
-            if not target_type:
-                target_type = "spirit" if random.random() < 0.3 else "essence"
-            
-            encounter = await EncounterService.spawn_encounter(
-                session, message.channel.id, message.guild.id, target_type,
-                override_subtype=target_subtype, override_rarity=target_rarity
-            )
-            
-            if encounter:
-                embed = discord.Embed(
-                    title=f"A {encounter.subtype} {encounter.type.title()} has appeared!",
-                    description=f"Type `bind` to capture this {encounter.type}." if encounter.type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
-                    color=discord.Color.blue() if encounter.type == "essence" else discord.Color.purple()
+            try:
+                if not target_type:
+                    target_type = "spirit" if random.random() < 0.3 else "essence"
+                
+                encounter = await EncounterService.spawn_encounter(
+                    session, message.channel.id, message.guild.id, target_type,
+                    override_subtype=target_subtype, override_rarity=target_rarity
                 )
-                if encounter.type == "essence":
-                    embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
-                else:
-                    embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(encounter.subtype))
-                if encounter.rarity:
-                    embed.add_field(name="Rarity", value=encounter.rarity.upper())
-                if getattr(encounter, "_temp_anchor_active", False):
-                    embed.set_footer(text="✨ Temporal Anchor Active: Spawns stay 15s longer!")
+                
+                if encounter:
+                    embed = discord.Embed(
+                        title=f"A {encounter.subtype} {encounter.type.title()} has appeared!",
+                        description=f"Type `bind` to capture this {encounter.type}." if encounter.type == "essence" else f"Type `bind spirit` to capture this {encounter.type}!",
+                        color=discord.Color.blue() if encounter.type == "essence" else discord.Color.purple()
+                    )
+                    if encounter.type == "essence":
+                        embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(encounter.subtype))
+                    else:
+                        embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(encounter.subtype))
+                    if encounter.rarity:
+                        embed.add_field(name="Rarity", value=encounter.rarity.upper())
+                    if getattr(encounter, "_temp_anchor_active", False):
+                        embed.set_footer(text="✨ Temporal Anchor Active: Spawns stay 15s longer!")
 
-                msg = await message.channel.send(embed=embed)
-                encounter.message_id = msg.id
-                await session.commit()
-            else:
-                await message.reply("An encounter is already active in this channel.")
+                    msg = await message.channel.send(embed=embed)
+                    encounter.message_id = msg.id
+                    await session.commit()
+                else:
+                    await message.reply("An encounter is already active in this channel.")
+            except Exception as e:
+                logger.error(f"Error in !testspawn: {e}", exc_info=True)
         return
 
     # Manual Familiar for testing
@@ -266,7 +269,6 @@ async def on_message(message: discord.Message):
     # Manual Lure for testing
     if content.startswith("!givelure") and message.author.guild_permissions.manage_guild:
         parts = content.split()
-        # Usage: !givelure [essence/spirit/pure] [minutes]
         ltype = parts[1].lower() if len(parts) > 1 else "essence"
         mins = int(parts[2]) if len(parts) > 2 else 30
 
@@ -284,12 +286,11 @@ async def on_message(message: discord.Message):
         return
 
     if content in ["bind", "bind spirit"]:
-        logger.info(f"Capture attempt by {message.author.name} in {message.channel.name}: {content}")
+        logger.info(f"Capture attempt by {message.author.name}: {content}")
         async with AsyncSessionLocal() as session:
             encounter, result = await EncounterService.process_capture_attempt(session, message.channel.id, message.author.id, content)
             
             if encounter:
-                # SUCCESS
                 await message.reply(result)
                 logger.info(f"Capture SUCCESS: {message.author.name} bound {encounter.subtype}")
                 await asyncio.sleep(0.5)
@@ -318,13 +319,9 @@ async def on_message(message: discord.Message):
                     if passive_msg:
                         await message.channel.send(passive_msg)
             else:
-                # FAILURE (Too fast, faded, wrong keyword, etc.)
                 if result:
                     await message.reply(result, delete_after=5)
                     logger.info(f"Capture FAILED for {message.author.name}: {result}")
-                else:
-                    # Silence for wrong keywords (e.g. typing 'bind' for a spirit)
-                    pass
 
     await bot.process_commands(message)
 

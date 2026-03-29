@@ -284,11 +284,14 @@ async def on_message(message: discord.Message):
         return
 
     if content in ["bind", "bind spirit"]:
-        logger.info(f"Capture attempt by {message.author.name}: {content}")
+        logger.info(f"Capture attempt by {message.author.name} in {message.channel.name}: {content}")
         async with AsyncSessionLocal() as session:
             encounter, result = await EncounterService.process_capture_attempt(session, message.channel.id, message.author.id, content)
+            
             if encounter:
+                # SUCCESS
                 await message.reply(result)
+                logger.info(f"Capture SUCCESS: {message.author.name} bound {encounter.subtype}")
                 await asyncio.sleep(0.5)
                 try:
                     msg = await message.channel.fetch_message(encounter.message_id)
@@ -314,8 +317,14 @@ async def on_message(message: discord.Message):
                     passive_msg = await PassiveService.trigger_passive_bonus(session, message.author.id, encounter.subtype)
                     if passive_msg:
                         await message.channel.send(passive_msg)
-            elif result:
-                await message.reply(result, delete_after=5)
+            else:
+                # FAILURE (Too fast, faded, wrong keyword, etc.)
+                if result:
+                    await message.reply(result, delete_after=5)
+                    logger.info(f"Capture FAILED for {message.author.name}: {result}")
+                else:
+                    # Silence for wrong keywords (e.g. typing 'bind' for a spirit)
+                    pass
 
     await bot.process_commands(message)
 

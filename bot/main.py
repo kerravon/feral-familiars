@@ -106,12 +106,19 @@ class FeralFamiliarsBot(commands.Bot):
                     embed.set_footer(text=None)
                     await msg.edit(embed=embed)
                     logger.info(f"Faded expired message {e.message_id}")
-                except Exception as ex:
-                    logger.debug(f"Could not fade message {e.message_id}: {ex}")
+                    
+                    # 2. Finalize Database State ONLY if edit worked
+                    e.is_active = False
+                    await session.commit()
 
-                # 2. Finalize Database State
-                e.is_active = False
-                await session.commit()
+                except discord.NotFound:
+                    # Message was deleted by a user/admin, close it in DB
+                    logger.info(f"Message {e.message_id} not found (deleted). Closing encounter.")
+                    e.is_active = False
+                    await session.commit()
+                except Exception as ex:
+                    # Temporary failure (503, etc.), don't close in DB yet, try next time
+                    logger.warning(f"Could not fade message {e.message_id}, will retry: {ex}")
 
     @cleanup_loop.before_loop
     async def before_cleanup_loop(self):

@@ -192,6 +192,26 @@ class FamiliarView(ui.View):
                 button.disabled = True
                 button.label = "Resonating..."
                 await interaction.response.edit_message(view=self)
-                await interaction.followup.send(f"🔥 **{result.name}'s resonance has been ignited!** Passive effects are active for the next 2 hours.")
+                await interaction.followup.send(f"🔥 **{result.name}'s resonance has been ignited!** Passive effects are active for the next 4 hours.")
             else:
                 await interaction.response.send_message(f"❌ {result}", ephemeral=True)
+
+    @ui.button(label="Switch Mode", style=discord.ButtonStyle.secondary, emoji="🔄")
+    async def switch_mode(self, interaction: discord.Interaction, button: ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("This is not your familiar.", ephemeral=True)
+            return
+
+        from bot.services.passive_service import PassiveService
+        from sqlalchemy import select
+        from bot.models.familiar import Familiar
+        
+        async with AsyncSessionLocal() as session:
+            stmt = select(Familiar).where(Familiar.id == self.familiar_id)
+            res = await session.execute(stmt)
+            f = res.scalar_one()
+            
+            new_mode = "pulse" if f.resonance_mode == "echo" else "echo"
+            await PassiveService.set_resonance_mode(session, self.user_id, self.familiar_id, new_mode)
+            
+            await interaction.response.send_message(f"🔄 Resonance mode switched to **{new_mode.upper()}**.", ephemeral=True)

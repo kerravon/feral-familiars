@@ -47,7 +47,7 @@ class PassiveService:
 
     @staticmethod
     async def activate_passive(session: AsyncSession, user_id: int, familiar_id: int):
-        """Sets active_until to 2 hours from now. Only once per day per familiar."""
+        """Sets active_until to 4 hours from now. Only once per day per familiar."""
         now = datetime.now()
         stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
         result = await session.execute(stmt)
@@ -59,10 +59,21 @@ class PassiveService:
         if familiar.last_activated_at and familiar.last_activated_at.date() == now.date():
             return False, "You have already ignited this familiar's resonance today."
 
-        # Activate for 2 hours
+        # Activate for 4 hours
         familiar.last_activated_at = now
-        familiar.active_until = now + timedelta(hours=2)
-        familiar.daily_trigger_count = 0 # Reset count for the session
+        familiar.active_until = now + timedelta(hours=4)
+        await session.commit()
+        return True, familiar
+
+    @staticmethod
+    async def set_resonance_mode(session: AsyncSession, user_id: int, familiar_id: int, mode: str):
+        """Switches between Echo and Pulse modes."""
+        stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
+        result = await session.execute(stmt)
+        familiar = result.scalar_one_or_none()
+        if not familiar: return False, "Familiar not found."
+        
+        familiar.resonance_mode = mode
         await session.commit()
         return True, familiar
 
@@ -72,63 +83,59 @@ class PassiveService:
         if not familiar:
             return None
 
-        # --- Daily Limit & Active Check ---
+        # --- Daily Active Check ---
         now = datetime.now()
         
-        # Check if passive is currently active
         if not familiar.active_until or now > familiar.active_until:
             return None # Not in resonance mode
         
-        # Determine Daily Limit by Rarity (Max triggers during the 2h window)
-        limit_map = {
-            GameConstants.COMMON: 20,
-            GameConstants.UNCOMMON: 25,
-            GameConstants.RARE: 30,
-            GameConstants.LEGENDARY: 40
-        }
-        daily_max = limit_map.get(familiar.rarity, 20)
-
-        if familiar.daily_trigger_count >= daily_max:
-            return None # Over limit for this session
-
-        # Scaling: Chance based on rarity of the spirit
-        # Common: 15%, Uncommon: 25%, Rare: 40%, Legendary: 60%
+        # Scaling: New Lower Chances
+        # Common: 8%, Uncommon: 15%, Rare: 25%, Legendary: 40%
         chance_map = {
-            GameConstants.COMMON: 0.15,
-            GameConstants.UNCOMMON: 0.25,
-            GameConstants.RARE: 0.40,
-            GameConstants.LEGENDARY: 0.60
+            GameConstants.COMMON: 0.08,
+            GameConstants.UNCOMMON: 0.15,
+            GameConstants.RARE: 0.25,
+            GameConstants.LEGENDARY: 0.40
         }
         
-        chance = chance_map.get(familiar.rarity, 0.15)
+        chance = chance_map.get(familiar.rarity, 0.08)
         
-        # Arcane familiars are stronger (+15% flat bonus to trigger)
+        # Arcane familiars (+10% flat bonus)
         if familiar.essence_type == GameConstants.ARCANE:
-            chance += 0.15
+            chance += 0.10
 
         if random.random() > chance:
             return None
 
-        # 1. Base Element logic: Double the essence of the SAME type
-        # 2. Arcane logic: Double ANY essence type
-        can_double = (familiar.essence_type == captured_type) or (familiar.essence_type == GameConstants.ARCANE)
+        # Determine which essence to give
+        give_type = captured_type
+        if familiar.resonance_mode == "pulse":
+            # Pulse Mode: Give a random DIFFERENT element
+            choices = [e for e in GameConstants.ESSENCES if e != captured_type]
+            give_type = random.choice(choices)
+        
+        # 1. Base Element check (only match in Echo mode)
+        # 2. Arcane check (always works)
+        can_trigger = (familiar.essence_type == captured_type) or (familiar.essence_type == GameConstants.ARCANE) or (familiar.resonance_mode == "pulse")
 
-        if not can_double:
+        if not can_trigger:
             return None
 
-        # Double the essence!
-        stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == captured_type)
+        # Grant the essence!
+        stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == give_type)
         res = await session.execute(stmt)
-        ess = res.scalar_one()
-        ess.count += 1
-        
-        # Update Familiar Stats
-        familiar.daily_trigger_count += 1
+        ess = res.scalar_one_or_none()
+        if not ess:
+            ess = Essence(user_id=user_id, type=give_type, count=1)
+            session.add(ess)
+        else:
+            ess.count += 1
         
         emoji = "✨" if familiar.essence_type == GameConstants.ARCANE else "🌀"
-        rem = daily_max - familiar.daily_trigger_count
-        count_msg = f" ({rem} left today)" if rem > 0 else " (Limit reached for today!)"
-        effect_msg = f"{emoji} **{familiar.name}**'s resonance duplicated the {captured_type} essence!{count_msg}"
+        if familiar.resonance_mode == "pulse":
+            effect_msg = f"{emoji} **{familiar.name}**'s pulse transmuted the energy into {give_type} essence!"
+        else:
+            effect_msg = f"{emoji} **{familiar.name}**'s resonance duplicated the {captured_type} essence!"
         
         await session.commit()
         return effect_msg

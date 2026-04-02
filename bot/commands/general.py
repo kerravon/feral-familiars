@@ -45,13 +45,18 @@ class GeneralCog(commands.Cog):
                 delta = f.active_until - now
                 mins = int(delta.total_seconds() / 60)
                 status = f"🔥 RESONATING ({mins}m left)"
-            
             embed.add_field(name="Resonance Status", value=status, inline=False)
-            
-            passive_desc = f"Double {f.essence_type} essences when captured."
-            if f.essence_type == "Arcane":
-                passive_desc = "Double ANY essence type (+15% trigger bonus)."
-            embed.add_field(name="Passive Power", value=passive_desc, inline=False)
+
+            # Passive Description
+            chance_map = {"common": 8, "uncommon": 15, "rare": 25, "legendary": 40}
+            base_chance = chance_map.get(f.rarity, 8)
+            if f.essence_type == "Arcane": base_chance += 10
+
+            mode_desc = "**ECHO:** 2x chance for same element." if f.resonance_mode == "echo" else "**PULSE:** Chance for a RANDOM element."
+            passive_desc = f"{mode_desc}\n**Trigger Chance:** {base_chance}%"
+
+            embed.add_field(name=f"Passive Power ({f.resonance_mode.upper()})", value=passive_desc, inline=False)
+
 
             view = FamiliarView(f.id, interaction.user.id)
             if f.last_activated_at and f.last_activated_at.date() == now.date():

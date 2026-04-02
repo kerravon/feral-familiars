@@ -36,6 +36,9 @@ class Familiar(Base):
     level: Mapped[int] = mapped_column(default=1)
     xp: Mapped[int] = mapped_column(default=0)
     
+    # Resonance Customization
+    resonance_mode: Mapped[str] = mapped_column(String(20), default="echo") # echo, pulse
+    
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     def __repr__(self) -> str:

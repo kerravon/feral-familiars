@@ -42,3 +42,17 @@ When trading, the **RECIPIENT** pays the ritual fee (tax) for each item received
   - Legendary: 25 Essences
 
 *Note: All fees can be paid using any essence type of the player's choice.*
+
+## 🔥 Resonance & Passives
+Once a familiar is created and `/summoned`, you must ignite its resonance to benefit from its passive powers.
+
+### Activation
+- **Method:** `/familiar [name]` -> Click **Ignite Resonance**.
+- **Duration:** **4 Hours**.
+- **Frequency:** Once per day per familiar.
+- **Triggers:** **Unlimited** during the 4-hour window.
+
+### Modes
+Players can switch between two resonance modes at any time:
+1.  **ECHO (Default):** Grants a chance to gain an extra essence of the **same type** as the one captured.
+2.  **PULSE:** Grants a chance to gain an extra essence of a **random different element**.

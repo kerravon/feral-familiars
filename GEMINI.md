@@ -49,6 +49,9 @@ A Discord-based creature collection and ritual game where players capture mystic
 *   **`/transmute` (Trade):** 
     *   **UI:** "Cat Bot" style interactive buttons and modals.
     *   **Tax:** **Recipient** pays 5% essence fee or rarity-based spirit fee.
+*   **`/incense` (Lure):** 
+    *   **Hero Mechanic:** High-intensity spawn window for the whole channel.
+    *   **Storage:** Bought/earned in minute-blocks and burned as needed.
 
 ---
 
@@ -78,11 +81,10 @@ bot/
 ---
 
 ## 🔮 Future Vision (Phase 2+)
-*   **Bonus Ritual Spells:** Complex recipes for "Awakened" familiars.
-*   **Rare Essence Types:** Celestial, Void, and Abyssal (low drop rates).
-*   **Server Uniques:** Mythological familiars (e.g., Cerberus) limited to one per server.
-*   **Active Familiars:** Expanded passive bonuses and leveling systems.
-*   **Advanced Trading:** Support for choosing tax payment essence and multi-item swaps.
+*   **Monthly Missions:** A "Battlepass" style system where players complete challenges to earn rewards like Incense.
+*   **Familiar Leveling:** Active familiars grow in power, increasing their passive trigger chances.
+*   **Leaderboards:** Rankings for top collectors and most active hunters.
+*   **Advanced Rituals:** Recipes for even more unique familiar types.
 
 ---
 

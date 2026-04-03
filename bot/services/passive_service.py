@@ -29,11 +29,11 @@ class PassiveService:
                 return False, "Familiar not found in your stable."
 
             async with session.begin_nested():
-                # 2. Deactivate current active familiar(s)
+                # 2. Deactivate current active familiar(s) and their resonance
                 await session.execute(
                     update(Familiar)
                     .where(Familiar.user_id == user_id, Familiar.is_active == True)
-                    .values(is_active=False)
+                    .values(is_active=False, active_until=None) # End resonance on swap
                 )
                 
                 # 3. Activate new one
@@ -47,7 +47,7 @@ class PassiveService:
 
     @staticmethod
     async def activate_passive(session: AsyncSession, user_id: int, familiar_id: int):
-        """Sets active_until to 4 hours from now. Only once per day per familiar."""
+        """Sets active_until to 4 hours from now. Only once per day per familiar. Must be summoned."""
         now = datetime.now()
         stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
         result = await session.execute(stmt)
@@ -55,6 +55,9 @@ class PassiveService:
         
         if not familiar:
             return False, "Familiar not found."
+        
+        if not familiar.is_active:
+            return False, "You can only ignite resonance for your currently **summoned** familiar."
         
         if familiar.last_activated_at and familiar.last_activated_at.date() == now.date():
             return False, "You have already ignited this familiar's resonance today."

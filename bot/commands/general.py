@@ -59,7 +59,11 @@ class GeneralCog(commands.Cog):
 
 
             view = FamiliarView(f.id, interaction.user.id)
-            if f.last_activated_at and f.last_activated_at.date() == now.date():
+            # Disable button if already active, used today, or NOT SUMMONED
+            if not f.is_active:
+                view.children[0].disabled = True
+                view.children[0].label = "Summon First"
+            elif f.last_activated_at and f.last_activated_at.date() == now.date():
                 if not (f.active_until and now < f.active_until):
                     view.children[0].disabled = True
                     view.children[0].label = "Used Today"

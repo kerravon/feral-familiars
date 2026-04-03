@@ -68,7 +68,7 @@ bot/
 │   ├── constants.py     # Naming banks, Costs, & Image URLs
 │   ├── config.py        # Centralized environment variable management
 │   └── ui.py            # Interactive Discord Views and Modals
-└── tools/               # Developer utility scripts (Asset optimization, etc.)
+└── tools/               # Developer utility scripts (Asset optimization, Prompting, etc.)
 ```
 
 ---

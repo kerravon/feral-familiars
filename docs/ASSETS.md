@@ -47,3 +47,18 @@ The optimized images will be saved in the `optimized_assets/` folder.
 - **Format:** WebP (preferred) or PNG.
 - **File Size:** Aim for **< 100 KB** per image.
 - **Hosting:** Upload the optimized `.webp` files to a reliable host (like ImgBB or GitHub) and update `bot/utils/constants.py`.
+
+## ✍️ Familiar Prompter Tool
+We have provided a tool to help generate consistent AI image prompts for every combination of Spirit, Rarity, and Essence.
+
+### Usage
+Run the script from the root directory:
+```bash
+python tools/familiar_prompter.py --spirit [type] --rarity [rarity] --essence [element]
+```
+
+**Example:**
+```bash
+python tools/familiar_prompter.py --spirit feline --rarity legendary --essence fire
+```
+This will output a full, styled prompt ready to be pasted into DALL-E or Midjourney.

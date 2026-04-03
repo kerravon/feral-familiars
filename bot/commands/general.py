@@ -214,7 +214,7 @@ class GeneralCog(commands.Cog):
         )
         embed.add_field(name="🤝 Social Taxes", value=taxes_text, inline=False)
         
-        embed.set_footer(text="Fees and incense costs can be viewed in your /inventory.")
+        embed.set_footer(text="Check your /inventory to see how many Incense minutes you have stored.")
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot):

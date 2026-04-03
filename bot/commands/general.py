@@ -179,6 +179,7 @@ class GeneralCog(commands.Cog):
             color=discord.Color.blue()
         )
         
+        # 1. Creation Costs
         ritual_text = (
             "To create a familiar, you need a Spirit and matching Essences:\n"
             "▫️ **Common:** 10 | **Uncommon:** 20\n"
@@ -188,29 +189,32 @@ class GeneralCog(commands.Cog):
         )
         embed.add_field(name="✨ Familiar Creation", value=ritual_text, inline=False)
         
+        # 2. Resonance Logic
         resonance_text = (
-            "Passives must be manually enabled using **/familiar [name]**:\n"
-            "🔥 **Resonance:** Active for **2 hours** once per day.\n"
-            "✨ **Arcane:** Doubles ANY essence + Server Timer Bonus.\n"
-            "💀 **Restless:** % Chance to 'Anchor' fading spirits for the server."
+            "Passives must be enabled via **/familiar [name]**:\n"
+            "🔥 **Resonance:** Active for **4 hours** once ignited.\n"
+            "⚖️ **Global Limit:** You can ignite resonance **2 times per day**.\n"
+            "🔄 **Modes:** Choose between **ECHO** (Double same type) or **PULSE** (Random different element)."
         )
         embed.add_field(name="🔥 Passive Resonance", value=resonance_text, inline=False)
 
-        bestow_text = (
-            "When you bestow a gift, **YOU** pay a ritual fee:\n"
-            "▫️ **Essences:** 2% (Min 1)\n"
-            "▫️ **Spirits:** 1-13 based on rarity"
+        # 3. Incense Logic
+        incense_text = (
+            "Burn stored time blocks to guarantee spawns in this channel:\n"
+            "👻 **Spirit:** 100% Spirit spawns every minute.\n"
+            "✨ **Essence:** 100% random Essence spawns every minute.\n"
+            "💎 **Pure:** 100% spawns of a **specifically chosen** element."
         )
-        embed.add_field(name="🎁 Gifting", value=bestow_text, inline=True)
-        
-        transmute_text = (
-            "When transmuting, **THE RECIPIENT** pays a fee:\n"
-            "▫️ **Essences:** 5% (Min 1)\n"
-            "▫️ **Spirits:** 2-25 based on rarity"
+        embed.add_field(name="🕯️ Spectral Incense", value=incense_text, inline=False)
+
+        # 4. Gifting & Trading Taxes
+        taxes_text = (
+            "**Gifting (Bestow):** Sender pays 2% fee (Spirits: 1-13)\n"
+            "**Trading (Transmute):** Recipient pays 5% fee (Spirits: 2-25)"
         )
-        embed.add_field(name="🧪 Trading", value=transmute_text, inline=True)
+        embed.add_field(name="🤝 Social Taxes", value=taxes_text, inline=False)
         
-        embed.set_footer(text="Fees can be paid with ANY essence type of your choice.")
+        embed.set_footer(text="Fees and incense costs can be viewed in your /inventory.")
         await interaction.response.send_message(embed=embed)
 
 async def setup(bot):

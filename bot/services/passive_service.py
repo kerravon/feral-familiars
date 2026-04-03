@@ -47,24 +47,42 @@ class PassiveService:
 
     @staticmethod
     async def activate_passive(session: AsyncSession, user_id: int, familiar_id: int):
-        """Sets active_until to 4 hours from now. Only once per day per familiar. Must be summoned."""
+        """Sets active_until to 4 hours from now. Only 2 ignites per day PER PLAYER. Must be summoned."""
         now = datetime.now()
-        stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
-        result = await session.execute(stmt)
-        familiar = result.scalar_one_or_none()
         
-        if not familiar:
-            return False, "Familiar not found."
+        # 1. Fetch User and Familiar
+        stmt_u = select(User).where(User.id == user_id)
+        res_u = await session.execute(stmt_u)
+        user = res_u.scalar_one_or_none()
+        
+        stmt_f = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
+        res_f = await session.execute(stmt_f)
+        familiar = res_f.scalar_one_or_none()
+        
+        if not user or not familiar:
+            return False, "User or Familiar not found."
         
         if not familiar.is_active:
             return False, "You can only ignite resonance for your currently **summoned** familiar."
-        
-        if familiar.last_activated_at and familiar.last_activated_at.date() == now.date():
-            return False, "You have already ignited this familiar's resonance today."
 
-        # Activate for 4 hours
-        familiar.last_activated_at = now
-        familiar.active_until = now + timedelta(hours=4)
+        # 2. Check Player-Level Daily Limit
+        if user.last_resonance_reset.date() < now.date():
+            user.daily_resonance_count = 0
+            user.last_resonance_reset = now
+        
+        if user.daily_resonance_count >= 2:
+            return False, "You have reached your limit of **2 ignites per day**. Your spirits need to rest."
+
+        # 3. Check Familiar-Level Cooldown (Don't let same familiar ignite twice if they have slots left)
+        if familiar.last_activated_at and familiar.last_activated_at.date() == now.date():
+            return False, "This specific familiar has already resonated today."
+
+        # 4. Activate for 4 hours
+        async with session.begin_nested():
+            familiar.last_activated_at = now
+            familiar.active_until = now + timedelta(hours=4)
+            user.daily_resonance_count += 1
+        
         await session.commit()
         return True, familiar
 

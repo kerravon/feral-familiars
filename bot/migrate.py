@@ -19,6 +19,8 @@ async def migrate():
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_essence_lure_mins INTEGER DEFAULT 0"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_spirit_lure_mins INTEGER DEFAULT 0"))
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS stored_pure_lure_mins INTEGER DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS daily_resonance_count INTEGER DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_resonance_reset TIMESTAMP DEFAULT CURRENT_TIMESTAMP"))
         
         # 2. Update 'familiars' table
         print("Updating 'familiars' table...")

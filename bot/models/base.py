@@ -19,6 +19,10 @@ class User(Base):
     stored_spirit_lure_mins: Mapped[int] = mapped_column(default=0)
     stored_pure_lure_mins: Mapped[int] = mapped_column(default=0)
 
+    # Resonance Limits (Player-level)
+    daily_resonance_count: Mapped[int] = mapped_column(default=0)
+    last_resonance_reset: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     def __repr__(self) -> str:

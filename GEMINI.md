@@ -1,5 +1,7 @@
 # Feral Familiars: Technical & Design Overview
 
+**Repository:** [kerravon/feral-familiars](https://github.com/kerravon/feral-familiars)
+
 This document serves as the foundational reference for the "Feral Familiars" Discord bot. It captures the current state of development, architectural decisions, and the long-term vision for the game.
 
 ---

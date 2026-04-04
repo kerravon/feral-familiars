@@ -12,7 +12,7 @@ A mystical Discord creature-collection game. Capture essences and spirits, perfo
 ### Installation
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
+    git clone https://github.com/kerravon/feral-familiars.git
     cd feral-familiars
     ```
 2.  **Environment Setup:**

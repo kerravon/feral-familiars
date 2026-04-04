@@ -21,11 +21,15 @@ A Discord-based creature collection and ritual game where players capture mystic
 ## 🧪 Game Mechanics
 
 ### 1. Spawning System
-*   **Frequency:** 25% chance every 2 minutes in active channels.
+*   **Frequency:** 15% chance every 2 minutes in active channels.
 *   **Activation:** Admins use `/toggle-channel` to enable/disable spawns.
+*   **Incense (Lures):** Players can ignite **Spectral Incense** to guarantee spawns for a set duration.
+    *   **Essence Incense:** 100% Essence spawn every 60s.
+    *   **Spirit Incense:** 100% Spirit spawn every 60s.
+    *   **Pure Incense:** 100% spawn of a **specifically chosen element** every 60s.
 *   **Types:** 
     *   **Essences (80%):** Earth, Wind, Fire, Arcane, Water.
-    *   **Spirits (20%):** Feline, Canine, Winged, Goblin.
+    *   **Spirits (20%):** Feline, Canine, Winged, Goblin, **Restless** (Rare).
 *   **Rarity (Spirits only):** Common (60%), Uncommon (25%), Rare (12%), Legendary (3%).
 
 ### 2. Capture System (Keyword-Based)
@@ -34,24 +38,34 @@ A Discord-based creature collection and ritual game where players capture mystic
 *   **Rules:**
     *   1-second anti-macro delay.
     *   First-valid-message wins.
-    *   Capture window scales by rarity (~35s to ~50s).
-    *   Visual Feedback: Original spawn message edits to show capturer and "Bound" artwork.
+    *   Capture window: ~45s (extended to **60s** if an Arcane familiar is active).
+    *   Visual Feedback: Original spawn message edits to show capturer and "Bound" artwork. Faded placeholder if missed.
 
 ### 3. Ritual System (Creation)
-*   **Formula:** 1 Spirit + X matching Essences = 1 Familiar.
+*   **Standard Formula:** 1 Spirit + X matching Essences = 1 Familiar.
+*   **Restless Formula:** 1 Restless Spirit + X matching Essences + **Arcane Infusion** (+5 to +25).
 *   **Costs:** Common (10), Uncommon (20), Rare (40), Legendary (80).
-*   **Naming:** Dynamic word banks based on Type + Rarity (e.g., "Tectonic Alpha-Predator").
+*   **Naming:** Dynamic word banks based on Type + Rarity (e.g., "Tectonic Wraith-Lord").
 
-### 4. Social Systems
+### 4. Passive Resonance (Power)
+*   **Activation:** Must manually ignite via **/familiar [name]**.
+*   **Duration:** **4 Hours** (Unlimited triggers during window).
+*   **Player Limit:** **2 ignites per day** total across all familiars.
+*   **Modes:**
+    *   **ECHO:** Chance to double matching captured essence.
+    *   **PULSE:** Chance to gain random different essence.
+*   **Unique Passives:**
+    *   **Arcane:** Universal Resonance (doubles ANY type) + Server Timer Bonus.
+    *   **Restless:** Soul Anchor (% chance to save fading spirits for the server).
+
+### 5. Social Systems
 *   **`/bestow` (Gift):** 
     *   **Limit:** 1 Spirit / 50 Essences per day (Reset Midnight UTC).
     *   **Tax:** **Sender** pays 2% fee (Min 1).
 *   **`/transmute` (Trade):** 
     *   **UI:** "Cat Bot" style interactive buttons and modals.
     *   **Tax:** **Recipient** pays 5% essence fee or rarity-based spirit fee.
-*   **`/incense` (Lure):** 
-    *   **Hero Mechanic:** High-intensity spawn window for the whole channel.
-    *   **Storage:** Bought/earned in minute-blocks and burned as needed.
+*   **Resonance Surges (Releasing):** Releasing items creates immediate spawns for the server. Releaser is blacklisted from the surge.
 
 ---
 

@@ -40,7 +40,8 @@ Equipping a familiar using `/summon` makes it your active companion.
     - **Soul Anchor:** If a Restless familiar's resonance is active in the server, any spirit that is about to fade has a **20-50% chance** (by rarity) to be anchored, staying for an additional **+30 seconds**.
 - **Resonance (Activation):** Passives are manually enabled using **`/familiar [name]`**:
   - Click **`Ignite Resonance`** to enable passives for **4 hours**.
-  - Can be ignited **once per day** per familiar.
+  - **Global Limit:** You can ignite resonance **2 times per day** across your entire stable.
+  - Can be ignited **once per day** per specific familiar.
   - **Unlimited Triggers:** No limit on how many times the passive can trigger during the 4-hour window.
 - **Resonance Modes:**
   - **ECHO (Default):** The familiar doubles the essence type you just captured (e.g., Fire familiar gives an extra Fire essence).

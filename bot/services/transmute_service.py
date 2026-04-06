@@ -4,6 +4,7 @@ from bot.models.trade import Trade, TradeOffer
 from bot.models.essence import Essence
 from bot.models.familiar import Spirit
 from bot.utils.constants import GameConstants
+from bot.utils.config import Config
 from bot.services.inventory_service import InventoryService
 import math
 
@@ -88,7 +89,22 @@ class TransmuteService:
         res = await session.execute(stmt)
         offers = res.scalars().all()
 
-        # 2. Check and Deduct Taxes for both
+        # 2. Check Spirit Limits for both parties
+        for uid in [trade.initiator_id, trade.receiver_id]:
+            other_id = trade.receiver_id if uid == trade.initiator_id else trade.initiator_id
+            # Spirits RECEIVING from the other person
+            receiving_spirits_count = sum(1 for off in offers if off.user_id == other_id and off.type == "spirit")
+            if receiving_spirits_count > 0:
+                stmt = select(Spirit).where(Spirit.user_id == uid)
+                res = await session.execute(stmt)
+                current_spirits = res.scalars().all()
+                # Spirits GIVING to the other person (they leave your inventory)
+                giving_spirits_count = sum(1 for off in offers if off.user_id == uid and off.type == "spirit")
+                
+                if len(current_spirits) - giving_spirits_count + receiving_spirits_count > Config.MAX_SPIRITS:
+                    return False, f"<@{uid}>'s spirit inventory would exceed the limit ({Config.MAX_SPIRITS})."
+
+        # 3. Check and Deduct Taxes for both
         for uid in [trade.initiator_id, trade.receiver_id]:
             tax_amount = await TransmuteService.calculate_tax(session, trade_id, uid)
             if tax_amount > 0:

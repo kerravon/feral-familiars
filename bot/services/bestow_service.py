@@ -5,6 +5,7 @@ from bot.models.essence import Essence
 from bot.models.familiar import Spirit
 from bot.services.inventory_service import InventoryService
 from bot.utils.constants import GameConstants
+from bot.utils.config import Config
 from datetime import datetime, timezone
 import math
 
@@ -72,10 +73,10 @@ class BestowService:
         res = await session.execute(stmt)
         r_ess = res.scalar_one_or_none()
         if not r_ess:
-            r_ess = Essence(user_id=receiver_id, type=essence_type, count=amount)
+            r_ess = Essence(user_id=receiver_id, type=essence_type, count=min(amount, Config.MAX_ESSENCES))
             session.add(r_ess)
         else:
-            r_ess.count += amount
+            r_ess.count = min(r_ess.count + amount, Config.MAX_ESSENCES)
             
         sender.daily_essences_gifted += amount
         await session.commit()
@@ -96,6 +97,13 @@ class BestowService:
         # 1. Check Limits
         if sender.daily_spirits_gifted >= 1:
             return False, "You have already gifted a spirit today."
+
+        # Check receiver spirit limit
+        stmt = select(Spirit).where(Spirit.user_id == receiver_id)
+        res = await session.execute(stmt)
+        r_spirits = res.scalars().all()
+        if len(r_spirits) >= Config.MAX_SPIRITS:
+            return False, f"Receiver's spirit inventory is full (max {Config.MAX_SPIRITS})."
 
         # 2. Check Spirit
         stmt = select(Spirit).where(Spirit.id == spirit_id, Spirit.user_id == sender_id)

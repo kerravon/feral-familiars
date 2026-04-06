@@ -3,6 +3,7 @@ from sqlalchemy import select, update
 from bot.models.base import User
 from bot.models.essence import Essence
 from bot.models.familiar import Spirit, Familiar
+from bot.utils.config import Config
 from typing import List, Optional
 
 class InventoryService:
@@ -29,10 +30,10 @@ class InventoryService:
         essence = result.scalar_one_or_none()
         
         if not essence:
-            essence = Essence(user_id=user_id, type=type, count=count)
+            essence = Essence(user_id=user_id, type=type, count=min(count, Config.MAX_ESSENCES))
             session.add(essence)
         else:
-            essence.count += count
+            essence.count = min(essence.count + count, Config.MAX_ESSENCES)
         
         await session.commit()
 
@@ -45,8 +46,8 @@ class InventoryService:
         result = await session.execute(stmt)
         spirits = result.scalars().all()
         
-        if len(spirits) >= 5: # Default limit
-            return False, "Spirit inventory full (max 5)."
+        if len(spirits) >= Config.MAX_SPIRITS:
+            return False, f"Spirit inventory full (max {Config.MAX_SPIRITS})."
         
         spirit = Spirit(user_id=user_id, type=type, rarity=rarity)
         session.add(spirit)

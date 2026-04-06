@@ -48,8 +48,11 @@ Once a familiar is created and `/summoned`, you must ignite its resonance to ben
 
 ### Activation
 - **Method:** `/familiar [name]` -> Click **Ignite Resonance**.
+- **Constraint:** The familiar **must be currently `/summoned`** to ignite resonance.
 - **Duration:** **4 Hours**.
-- **Frequency:** Once per day per familiar.
+- **Global Limit:** A player can only ignite resonance **2 times per day** across their entire stable.
+- **Familiar Limit:** Each specific familiar can only be ignited **once per day**.
+- **Auto-End:** If you swap to a different familiar using `/summon`, any active resonance **immediately ends**.
 - **Triggers:** **Unlimited** during the 4-hour window.
 
 ### Modes

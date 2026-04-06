@@ -124,7 +124,7 @@ class FeralFamiliarsBot(commands.Bot):
     async def before_cleanup_loop(self):
         await self.wait_until_ready()
 
-    @tasks.loop(minutes=Config.SPAWN_INTERVAL_MINUTES)
+    @tasks.loop(seconds=Config.SPAWN_INTERVAL_SECONDS)
     async def spawn_loop(self):
         async with AsyncSessionLocal() as session:
             active_configs = await ConfigService.get_active_channels(session)

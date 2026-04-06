@@ -5,6 +5,7 @@ from bot.models.familiar import Familiar
 from bot.models.base import User
 from bot.services.inventory_service import InventoryService
 from bot.utils.constants import GameConstants
+from bot.utils.config import Config
 from datetime import datetime, timedelta
 import random
 
@@ -32,25 +33,11 @@ class EncounterService:
             return None
         
         # 2. Determine Rarity and Duration
-        duration_seconds = 45 # Default
+        duration_seconds = Config.CAPTURE_WINDOW_SECONDS
         
         # --- Temporal Anchor (Arcane Passive) ---
         # Check if anyone in this guild has an active Arcane familiar
-        arcane_stmt = select(Familiar).where(
-            Familiar.user_id.in_(
-                select(User.id).where(User.id == Familiar.user_id) # Implicit join/check
-            ),
-            Familiar.is_active == True,
-            Familiar.essence_type == GameConstants.ARCANE
-        )
-        # Simpler: Just check if any active Arcane familiar exists for any user. 
-        # To be guild-specific, we'd need a join with a member table, but since we don't 
-        # track 'User-in-Guild' explicitly in a join table yet, let's look for ANY 
-        # active Arcane familiar globally for now as a "World Blessing", 
-        # or I can add a quick check for players who have interacted in this guild.
-        
         # Let's do a more performant check: Is there ANY active Arcane familiar?
-        # (We can refine this to Guild-only later if we add a GuildMember model)
         stmt_arcane = select(Familiar).where(Familiar.is_active == True, Familiar.essence_type == GameConstants.ARCANE).limit(1)
         arcane_res = await session.execute(stmt_arcane)
         has_arcane_anchor = arcane_res.scalar_one_or_none() is not None
@@ -58,29 +45,30 @@ class EncounterService:
         if type == "essence":
             subtype = override_subtype or random.choices(GameConstants.ESSENCES, weights=GameConstants.ESSENCE_WEIGHTS, k=1)[0]
             rarity = None
-            duration_seconds = random.randint(42, 50)
+            # Essence duration is standard
+            duration_seconds = Config.CAPTURE_WINDOW_SECONDS + random.randint(0, 5)
         else:
             # 10% chance for Restless spirit, others balanced (22.5% each)
             weights = [22.5, 22.5, 22.5, 22.5, 10]
             subtype = override_subtype or random.choices(GameConstants.SPIRITS, weights=weights, k=1)[0]
-            # Rarity distribution
+            # Rarity distribution affects duration slightly
             if override_rarity:
                 rarity = override_rarity
-                duration_seconds = 45
+                duration_seconds = Config.CAPTURE_WINDOW_SECONDS
             else:
                 rand = random.random()
                 if rand < 0.6: 
                     rarity = GameConstants.COMMON
-                    duration_seconds = random.randint(40, 45)
+                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS
                 elif rand < 0.85: 
                     rarity = GameConstants.UNCOMMON
-                    duration_seconds = random.randint(38, 42)
+                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS - 2
                 elif rand < 0.97: 
                     rarity = GameConstants.RARE
-                    duration_seconds = random.randint(36, 40)
+                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS - 5
                 else: 
                     rarity = GameConstants.LEGENDARY
-                    duration_seconds = random.randint(34, 37)
+                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS - 8
 
         if has_arcane_anchor:
             duration_seconds += 15
@@ -150,9 +138,9 @@ class EncounterService:
         if keyword.lower().strip() != expected:
             return None, None # Ignore invalid keywords silently or with feedback
         
-        # 3. Check anti-macro delay (1s)
+        # 3. Check anti-macro delay
         now = datetime.now()
-        if now - encounter.spawned_at < timedelta(seconds=1):
+        if now - encounter.spawned_at < timedelta(seconds=Config.ANTI_MACRO_DELAY_SECONDS):
             return None, "Too fast! Wait a moment before binding."
         
         # 4. Check capture window

@@ -94,8 +94,8 @@ bot/
 ---
 
 ## 🛠 Development Guidelines
-*   **Git:** Always stage and commit changes after completing a batch of requested modifications.
-*   **Documentation:** Ensure `GEMINI.md` and related files in `docs/` are updated immediately whenever architectural or mechanical changes are made.
+*   **Git:** Always stage, commit, and push changes after completing a batch of requested modifications.
+*   **Documentation:** Keep `GEMINI.md` and all files in `docs/` updated immediately to reflect any architectural, mechanical, or configuration changes.
 *   **Testing:** Verify changes via available test suites or manual reproduction before committing.
 
 ---

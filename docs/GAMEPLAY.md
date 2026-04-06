@@ -21,16 +21,16 @@ Rarity determines the creation cost and the **success chance of Passive Effects*
 ## 🪢 Capture (Binding)
 - **Keyword:** `bind` for essences, `bind spirit` for spirits.
 - **Limits:** 
-  - **Essences:** Currently unlimited.
-  - **Spirits:** Max **5** in inventory.
+  - **Essences:** Max **500** per type (Configurable via `MAX_ESSENCES`).
+  - **Spirits:** Max **5** in inventory (Configurable via `MAX_SPIRITS`).
 - **Rules:**
   - **First Response:** The first player to type the keyword correctly wins the encounter.
-  - **Anti-Macro:** A 1-second delay is enforced after a spawn before capture is possible.
-  - **Expiration:** Encounters fade after a few seconds if not bound.
+  - **Anti-Macro:** A delay is enforced (default 1s, configurable via `ANTI_MACRO_DELAY_SECONDS`) after a spawn before capture is possible.
+  - **Expiration:** Encounters fade after a few seconds (default 45s, configurable via `CAPTURE_WINDOW_SECONDS`).
 
 ## 🟢 Active Familiars
 Equipping a familiar using `/summon` makes it your active companion. 
-- **Stable Limit:** You can hold a maximum of **3** familiars.
+- **Stable Limit:** You can hold a maximum of **3** familiars (Default, configurable via `DEFAULT_STABLE_LIMIT`).
 - **Passive Bonuses:**
   - **Base Familiars:** % Chance to gain an extra essence based on the **Mode**.
   - **Arcane Familiars:**

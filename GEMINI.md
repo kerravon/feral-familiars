@@ -37,10 +37,14 @@ A Discord-based creature collection and ritual game where players capture mystic
 ### 2. Capture System (Keyword-Based)
 *   **Keywords:** `bind` (essences) and `bind spirit` (spirits).
 *   **Debug Command:** `!testspawn [essence/spirit] [subtype] [rarity]` (Admins only).
+*   **Inventory Limits:**
+    *   **Essences:** Cap of 500 (Configurable via `MAX_ESSENCES`).
+    *   **Spirits:** Cap of 5 (Configurable via `MAX_SPIRITS`).
+    *   **Familiars:** Initial stable limit of 3 (Configurable via `DEFAULT_STABLE_LIMIT`).
 *   **Rules:**
-    *   1-second anti-macro delay.
+    *   Anti-macro delay (Default 1s, configurable via `ANTI_MACRO_DELAY_SECONDS`).
     *   First-valid-message wins.
-    *   Capture window: ~45s (extended to **60s** if an Arcane familiar is active).
+    *   Capture window: ~45s (Configurable via `CAPTURE_WINDOW_SECONDS`, extended to **60s** if an Arcane familiar is active).
     *   Visual Feedback: Original spawn message edits to show capturer and "Bound" artwork. Faded placeholder if missed.
 
 ### 3. Ritual System (Creation)

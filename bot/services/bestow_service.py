@@ -4,6 +4,7 @@ from bot.models.base import User
 from bot.models.essence import Essence
 from bot.models.familiar import Spirit
 from bot.services.inventory_service import InventoryService
+from bot.services.guild_service import GuildService
 from bot.utils.constants import GameConstants
 from bot.utils.config import Config
 from datetime import datetime, timezone
@@ -27,7 +28,10 @@ class BestowService:
         receiver_id: int, 
         essence_type: str, 
         amount: int,
-        tax_payment_type: str
+        tax_payment_type: str,
+        bot = None,
+        guild_id: int = 0,
+        channel_id: int = 0
     ):
         if amount <= 0: return False, "Amount must be positive."
         
@@ -46,8 +50,8 @@ class BestowService:
         if not s_ess or s_ess.count < amount:
             return False, f"Insufficient {essence_type} essences."
 
-        # 3. Calculate Tax (2% for sender)
-        tax_amount = math.ceil(amount * 0.02)
+        # 3. Calculate Tax (3% for sender, goes to Pot)
+        tax_amount = math.ceil(amount * 0.03)
         
         # Check Sender Inventory for tax
         stmt = select(Essence).where(Essence.user_id == sender_id, Essence.type == tax_payment_type)
@@ -57,7 +61,7 @@ class BestowService:
         # Total needed if tax type is the same as gift type
         total_needed = amount + tax_amount if tax_payment_type == essence_type else tax_amount
         
-        if not s_tax_ess or s_tax_ess.count < (amount + tax_amount if tax_payment_type == essence_type else tax_amount):
+        if not s_tax_ess or s_tax_ess.count < total_needed:
             return False, f"You lack enough {tax_payment_type} for the ritual fee ({tax_amount})."
 
         # 4. Execute Bestow
@@ -67,6 +71,10 @@ class BestowService:
             s_ess.count -= tax_amount
         else:
             s_tax_ess.count -= tax_amount
+        
+        # Add tax to the Well of Souls
+        if bot and guild_id and channel_id:
+            await GuildService.add_to_pot(session, guild_id, bot, channel_id, essence_amount=tax_amount)
         
         # Add to receiver
         stmt = select(Essence).where(Essence.user_id == receiver_id, Essence.type == essence_type)
@@ -80,7 +88,7 @@ class BestowService:
             
         sender.daily_essences_gifted += amount
         await session.commit()
-        return True, f"You bestowed {amount} {essence_type} essences to <@{receiver_id}>. You paid a ritual fee of {tax_amount} {tax_payment_type}."
+        return True, f"You bestowed {amount} {essence_type} essences to <@{receiver_id}>. You paid {tax_amount} {tax_payment_type} to the **Well of Souls**."
 
     @staticmethod
     async def bestow_spirit(
@@ -88,7 +96,10 @@ class BestowService:
         sender_id: int, 
         receiver_id: int, 
         spirit_id: int,
-        tax_payment_type: str
+        tax_payment_type: str,
+        bot = None,
+        guild_id: int = 0,
+        channel_id: int = 0
     ):
         sender = await InventoryService.get_or_create_user(session, sender_id)
         receiver = await InventoryService.get_or_create_user(session, receiver_id)
@@ -119,7 +130,7 @@ class BestowService:
             GameConstants.RARE: 10,
             GameConstants.LEGENDARY: 25
         }
-        tax_amount = math.ceil(transmute_tax[spirit.rarity] / 2)
+        tax_amount = transmute_tax[spirit.rarity]
 
         # Check Sender Tax
         stmt = select(Essence).where(Essence.user_id == sender_id, Essence.type == tax_payment_type)
@@ -133,5 +144,9 @@ class BestowService:
         s_tax_ess.count -= tax_amount
         sender.daily_spirits_gifted += 1
         
+        # Add to Pot
+        if bot and guild_id and channel_id:
+            await GuildService.add_to_pot(session, guild_id, bot, channel_id, essence_amount=tax_amount, spirit_amount=1)
+        
         await session.commit()
-        return True, f"You bestowed a {spirit.rarity} {spirit.type} spirit to <@{receiver_id}>. You paid a ritual fee of {tax_amount} {tax_payment_type}."
+        return True, f"You bestowed a {spirit.rarity} {spirit.type} spirit to <@{receiver_id}>. You paid {tax_amount} {tax_payment_type} to the **Well of Souls**."

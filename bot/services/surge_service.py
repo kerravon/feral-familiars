@@ -59,6 +59,38 @@ class SurgeService:
             await asyncio.sleep(4)
 
     @staticmethod
+    async def trigger_well_of_souls_surge(bot, channel_id, guild_id):
+        """
+        Triggered when the Guild Pot overflows.
+        Spawns a massive burst of items for everyone.
+        """
+        channel = bot.get_channel(channel_id)
+        if not channel:
+            channel = await bot.fetch_channel(channel_id)
+            
+        await channel.send("🌌 **THE WELL OF SOULS OVERFLOWS!** 🌌\nA massive surge of energy is returning to the world! Get ready!")
+        await asyncio.sleep(5)
+        
+        # Spawn 8 items in rapid succession (Mixture of essence and spirits)
+        for i in range(8):
+            is_spirit = random.random() < 0.3
+            etype = random.choice(GameConstants.ESSENCES)
+            stype = random.choice(GameConstants.SPIRITS)
+            rarity = random.choice(GameConstants.RARITIES) if is_spirit else None
+            
+            await SurgeService._spawn_with_announcement(
+                bot, channel_id, guild_id, 
+                "spirit" if is_spirit else "essence", 
+                stype if is_spirit else etype, 
+                rarity, 
+                None, # No blacklist
+                f"🌟 **SURGE EVENT**: Item {i+1}/8 has manifested!"
+            )
+            await asyncio.sleep(4)
+        
+        await channel.send("✨ The energy from the Well has stabilized. Until next time...")
+
+    @staticmethod
     async def _spawn_with_announcement(bot, channel_id, guild_id, type, subtype, rarity, releaser_id, announcement):
         async with AsyncSessionLocal() as session:
             encounter = await EncounterService.spawn_encounter(

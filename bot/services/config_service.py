@@ -79,6 +79,16 @@ class ConfigService:
         return True, f"Ignited **{minutes} minutes** of {lure_type.title()} Incense!"
 
     @staticmethod
+    async def increment_activity(session: AsyncSession, channel_id: int):
+        """Increments the activity score for an active channel."""
+        stmt = update(ChannelConfig).where(
+            ChannelConfig.channel_id == channel_id,
+            ChannelConfig.is_active == True
+        ).values(activity_score=ChannelConfig.activity_score + 1)
+        await session.execute(stmt)
+        await session.commit()
+
+    @staticmethod
     async def cleanup_expired_lures(session: AsyncSession):
         """Clears lures that have passed their expiry time."""
         now = datetime.now()

@@ -1,7 +1,14 @@
 # 🎮 Gameplay Mechanics
 
 ## 🌌 Spawning System
-Spawns occur periodically (default every 2 minutes) in active channels with a configurable chance (default 15-25%).
+Spawns occur periodically (Configurable via `SPAWN_INTERVAL_SECONDS`) in active channels.
+
+### Dynamic Spawn Chance
+The probability of a spawn is influenced by channel activity and a pity system:
+- **Base Chance:** 15-25% (Configurable).
+- **Activity Bonus (Heat):** Each message sent in the channel increases the chance of the next spawn by **+0.5%** (Max +20%).
+- **Pity Bonus:** Every time the spawn clock ticks and NO item appears, the chance for the next tick increases by **+2%**.
+- **Reset:** Both bonuses reset to 0 immediately after a successful spawn.
 
 ### Types of Encounters
 - **Essences (80%):** 

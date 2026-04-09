@@ -104,5 +104,30 @@ class GameCog(commands.Cog):
             else:
                 await interaction.response.send_message(f"❌ **Release Failed:** {result}", ephemeral=True)
 
+    @app_commands.command(name="vault", description="Check the status of the Well of Souls (Guild Pot).")
+    async def vault(self, interaction: discord.Interaction):
+        from bot.services.guild_service import GuildService
+        async with AsyncSessionLocal() as session:
+            config = await GuildService.get_guild_config(session, interaction.guild_id)
+            
+            progress = (config.pot_essence_total / config.surge_threshold) * 100
+            
+            embed = discord.Embed(
+                title="🌌 The Well of Souls",
+                description="Elemental taxes and offerings are gathered here. When the Well overflows, a massive resonance surge occurs!",
+                color=discord.Color.dark_purple()
+            )
+            embed.add_field(name="Total Essence", value=f"💎 {config.pot_essence_total} / {config.surge_threshold}", inline=True)
+            embed.add_field(name="Spirits Held", value=f"👻 {config.pot_spirit_total}", inline=True)
+            
+            # Progress bar
+            filled = int(progress / 10)
+            bar = "🟦" * filled + "⬛" * (10 - filled)
+            embed.add_field(name="Overflow Progress", value=f"{bar} ({progress:.1f}%)", inline=False)
+            
+            embed.set_footer(text="Gifting and Trading adds to the Well. Voluntary contributions coming soon!")
+            
+            await interaction.response.send_message(embed=embed)
+
 async def setup(bot):
     await bot.add_cog(GameCog(bot))

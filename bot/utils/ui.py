@@ -68,11 +68,12 @@ class SpiritOfferModal(ui.Modal, title="Offer a Spirit"):
         await self.view.update_message(interaction)
 
 class TransmuteView(ui.View):
-    def __init__(self, trade_id, initiator_id, receiver_id):
+    def __init__(self, trade_id, initiator_id, receiver_id, bot=None):
         super().__init__(timeout=300) # 5 minute timeout
         self.trade_id = trade_id
         self.initiator_id = initiator_id
         self.receiver_id = receiver_id
+        self.bot = bot
         self.initiator_accepted = False
         self.receiver_accepted = False
         # Default tax payment to Arcane, players can't change in MVP yet
@@ -155,7 +156,10 @@ class TransmuteView(ui.View):
 
             if self.initiator_accepted and self.receiver_accepted:
                 # Final Execution
-                success, msg = await TransmuteService.execute_trade(session, self.trade_id, self.tax_types)
+                success, msg = await TransmuteService.execute_trade(
+                    session, self.trade_id, self.tax_types, 
+                    bot=self.bot, guild_id=interaction.guild_id, channel_id=interaction.channel_id
+                )
                 if success:
                     self.stop()
                     await interaction.response.edit_message(content=f"✅ **Ritual Complete!** {msg}", view=None)

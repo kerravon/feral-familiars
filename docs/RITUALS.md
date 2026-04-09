@@ -22,26 +22,29 @@ Restless spirits are unstable and require an infusion of **Arcane Essence** in a
 `/bestow user tax_payment essence_type amount`
 `/bestow user tax_payment spirit_id`
 
-When gifting, the **SENDER** pays the ritual fee (tax).
-- **Essences:** 2% of total amount (Min 1).
+When gifting, the **SENDER** pays the ritual fee (tax) into the **Well of Souls**.
+- **Essences:** 3% of total amount (Min 1).
 - **Spirits:** 
-  - Common: 1 Essence
-  - Uncommon: 3 Essences
-  - Rare: 5 Essences
-  - Legendary: 13 Essences
+  - Common: 2 Essences
+  - Uncommon: 5 Essences
+  - Rare: 10 Essences
+  - Legendary: 25 Essences
 
 ## 🧪 Trading (Transmute)
 `/transmute user`
 
-When trading, the **RECIPIENT** pays the ritual fee (tax) for each item received.
-- **Essences:** 5% of total (Min 1).
+When trading, the **RECIPIENT** pays the ritual fee (tax) into the **Well of Souls** for each item received.
+- **Essences:** 3% of total (Min 1).
 - **Spirits:**
   - Common: 2 Essences
   - Uncommon: 5 Essences
   - Rare: 10 Essences
   - Legendary: 25 Essences
 
-*Note: All fees can be paid using any essence type of the player's choice.*
+## 🌌 The Well of Souls (Guild Pot)
+All ritual fees from gifting and trading are collected into the server's **Well of Souls**.
+- **Command:** `/vault`
+- **Overflow Event:** When the total essence in the Well reaches its threshold (Default 1,000), it overflows, triggering a **Prismatic Surge**—a series of **8 immediate spawns** for everyone in the server!
 
 ## 🔥 Resonance & Passives
 Once a familiar is created and `/summoned`, you must ignite its resonance to benefit from its passive powers.

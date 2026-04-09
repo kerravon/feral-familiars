@@ -6,6 +6,7 @@ from bot.models.familiar import Spirit
 from bot.utils.constants import GameConstants
 from bot.utils.config import Config
 from bot.services.inventory_service import InventoryService
+from bot.services.guild_service import GuildService
 import math
 
 class TransmuteService:
@@ -72,14 +73,14 @@ class TransmuteService:
 
         for off in offers:
             if off.type == "essence":
-                total_tax += math.ceil(off.amount * 0.05)
+                total_tax += math.ceil(off.amount * 0.03)
             else:
                 total_tax += spirit_tax_map[off.rarity]
         
         return total_tax
 
     @staticmethod
-    async def execute_trade(session: AsyncSession, trade_id: int, tax_types: dict):
+    async def execute_trade(session: AsyncSession, trade_id: int, tax_types: dict, bot = None, guild_id: int = 0, channel_id: int = 0):
         # 1. Get Trade and Offers
         stmt = select(Trade).where(Trade.id == trade_id)
         res = await session.execute(stmt)
@@ -115,8 +116,14 @@ class TransmuteService:
                 if not ess or ess.count < tax_amount:
                     return False, f"<@{uid}> does not have enough {tax_type} for their ritual fee ({tax_amount})."
                 ess.count -= tax_amount
+                
+                # Add to Pot
+                if bot and guild_id and channel_id:
+                    other_id = trade.receiver_id if uid == trade.initiator_id else trade.initiator_id
+                    received_spirits_count = sum(1 for off in offers if off.user_id == other_id and off.type == "spirit")
+                    await GuildService.add_to_pot(session, guild_id, bot, channel_id, essence_amount=tax_amount, spirit_amount=received_spirits_count)
 
-        # 3. Swap Items
+        # 4. Swap Items
         for off in offers:
             receiver_id = trade.receiver_id if off.user_id == trade.initiator_id else trade.initiator_id
             if off.type == "essence":
@@ -137,4 +144,4 @@ class TransmuteService:
         
         trade.status = "ACCEPTED"
         await session.commit()
-        return True, "Ritual of Transmutation complete! The items have been swapped."
+        return True, "Ritual of Transmutation complete! The items have been swapped, and taxes paid to the **Well of Souls**."

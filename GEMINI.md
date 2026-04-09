@@ -23,7 +23,10 @@ A Discord-based creature collection and ritual game where players capture mystic
 ## 🧪 Game Mechanics
 
 ### 1. Spawning System
-*   **Frequency:** 15% chance every 2 minutes in active channels.
+*   **Dynamic Frequency:** Spawns occur on a rhythmic "Pulse" (Configurable via `SPAWN_INTERVAL_SECONDS`).
+*   **Activity Bonus (Heat):** Active channels gain a "Heat" bonus. Each message increases the spawn chance by +0.5% (Max +20% bonus).
+*   **Pity System:** Each failed spawn check increases the next check's chance by +2% bonus.
+*   **Resets:** Both Heat and Pity reset to 0 upon a successful spawn.
 *   **Activation:** Admins use `/toggle-channel` to enable/disable spawns.
 *   **Incense (Lures):** Players can ignite **Spectral Incense** to guarantee spawns for a set duration.
     *   **Essence Incense:** 100% Essence spawn every 60s.
@@ -65,12 +68,15 @@ A Discord-based creature collection and ritual game where players capture mystic
     *   **Restless:** Soul Anchor (% chance to save fading spirits for the server).
 
 ### 5. Social Systems
+*   **The Well of Souls (Guild Pot):** 
+    *   Taxes from gifting and trading are collected into a community pot (viewable via `/vault`).
+    *   **Overflow Surge:** When the Well reaches its threshold (Default 1000 essences), it triggers a massive, server-wide Prismatic Surge (8 rapid spawns).
 *   **`/bestow` (Gift):** 
     *   **Limit:** 1 Spirit / 50 Essences per day (Reset Midnight UTC).
-    *   **Tax:** **Sender** pays 2% fee (Min 1).
+    *   **Tax:** **Sender** pays 3% fee (Min 1) to the Well of Souls.
 *   **`/transmute` (Trade):** 
     *   **UI:** "Cat Bot" style interactive buttons and modals.
-    *   **Tax:** **Recipient** pays 5% essence fee or rarity-based spirit fee.
+    *   **Tax:** **Recipient** pays 3% essence fee (Min 1) and rarity-based spirit fee to the Well of Souls.
 *   **Resonance Surges (Releasing):** Releasing items creates immediate spawns for the server. Releaser is blacklisted from the surge.
 
 ---

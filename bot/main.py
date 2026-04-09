@@ -138,8 +138,22 @@ class FeralFamiliarsBot(commands.Bot):
                     is_lured = config.active_lure_type and config.lure_expires_at and config.lure_expires_at > now
                     
                     if not is_lured:
-                        if random.randint(1, 100) > Config.SPAWN_CHANCE_PERCENT:
+                        # Dynamic Spawn Chance: Base + Activity Bonus + Pity Bonus
+                        activity_bonus = min(config.activity_score * 0.5, 20) # Max +20% from activity
+                        pity_bonus = config.pity_count * 2 # +2% per failed cycle
+                        total_chance = Config.SPAWN_CHANCE_PERCENT + activity_bonus + pity_bonus
+                        
+                        if random.randint(1, 100) > total_chance:
+                            # Failed to spawn, increment pity for next time
+                            config.pity_count += 1
+                            await session.commit()
                             continue
+                        
+                        # Success! Reset counters
+                        config.activity_score = 0
+                        config.pity_count = 0
+                        await session.commit()
+                        
                         spawn_type = "spirit" if random.random() < 0.2 else "essence"
                         spawn_subtype = None
                     else:
@@ -197,6 +211,11 @@ async def on_ready():
 async def on_message(message: discord.Message):
     if message.author.bot:
         return
+
+    # Track activity for spawning bonus
+    if message.guild:
+        async with AsyncSessionLocal() as session:
+            await ConfigService.increment_activity(session, message.channel.id)
 
     content = message.content.lower().strip()
 

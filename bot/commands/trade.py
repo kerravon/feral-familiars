@@ -33,7 +33,7 @@ class TradeCog(commands.Cog):
 
         async with AsyncSessionLocal() as session:
             trade = await TransmuteService.create_trade(session, interaction.user.id, user.id)
-            view = TransmuteView(trade.id, interaction.user.id, user.id)
+            view = TransmuteView(trade.id, interaction.user.id, user.id, bot=self.bot)
             
             embed = discord.Embed(
                 title="✨ Ritual of Transmutation",
@@ -81,11 +81,13 @@ class TradeCog(commands.Cog):
             if essence_type and amount:
                 essence_type = essence_type.title()
                 success, result = await BestowService.bestow_essence(
-                    session, interaction.user.id, user.id, essence_type, amount, tax_payment
+                    session, interaction.user.id, user.id, essence_type, amount, tax_payment,
+                    bot=self.bot, guild_id=interaction.guild_id, channel_id=interaction.channel_id
                 )
             elif spirit_id:
                 success, result = await BestowService.bestow_spirit(
-                    session, interaction.user.id, user.id, spirit_id, tax_payment
+                    session, interaction.user.id, user.id, spirit_id, tax_payment,
+                    bot=self.bot, guild_id=interaction.guild_id, channel_id=interaction.channel_id
                 )
             else:
                 await interaction.response.send_message("You must specify either essences or a spirit to bestow.", ephemeral=True)

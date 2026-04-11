@@ -55,6 +55,23 @@ class InventoryService:
         return True, spirit
 
     @staticmethod
+    async def deduct_essence(session: AsyncSession, user_id: int, type: str, count: int) -> bool:
+        """Deducts essence from a user's inventory. Returns True if successful, False if insufficient."""
+        stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == type)
+        result = await session.execute(stmt)
+        essence = result.scalar_one_or_none()
+        
+        if not essence or essence.count < count:
+            return False
+            
+        essence.count -= count
+        if essence.count == 0:
+            await session.delete(essence)
+            
+        await session.commit()
+        return True
+
+    @staticmethod
     async def get_essences(session: AsyncSession, user_id: int) -> List[Essence]:
         stmt = select(Essence).where(Essence.user_id == user_id)
         result = await session.execute(stmt)

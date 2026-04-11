@@ -33,6 +33,13 @@ class GameCog(commands.Cog):
             ]
             return choices[:25]
 
+    async def essence_autocomplete(self, interaction: discord.Interaction, current: str):
+        choices = [
+            app_commands.Choice(name=e, value=e)
+            for e in GameConstants.ESSENCES if current.lower() in e.lower()
+        ]
+        return choices[:25]
+
     @app_commands.command(name="ritual", description="Combine a spirit and essences to create a familiar.")
     @app_commands.autocomplete(spirit_id=spirit_autocomplete)
     async def ritual(self, interaction: discord.Interaction, spirit_id: int, essence_type: str):
@@ -103,6 +110,28 @@ class GameCog(commands.Cog):
                 ))
             else:
                 await interaction.response.send_message(f"❌ **Release Failed:** {result}", ephemeral=True)
+
+    @app_commands.command(name="donate", description="Voluntarily contribute essences to the Well of Souls (Guild Pot).")
+    @app_commands.autocomplete(essence_type=essence_autocomplete)
+    async def donate(self, interaction: discord.Interaction, essence_type: str, amount: int):
+        if amount <= 0:
+            await interaction.response.send_message("Donation must be a positive amount.", ephemeral=True)
+            return
+
+        essence_type = essence_type.title()
+        if essence_type not in GameConstants.ESSENCES:
+            await interaction.response.send_message(f"Invalid essence type. Choose from: {', '.join(GameConstants.ESSENCES)}", ephemeral=True)
+            return
+
+        from bot.services.guild_service import GuildService
+        async with AsyncSessionLocal() as session:
+            success = await InventoryService.deduct_essence(session, interaction.user.id, essence_type, amount)
+            if not success:
+                await interaction.response.send_message(f"You do not have {amount}x {essence_type} essences.", ephemeral=True)
+                return
+
+            await GuildService.add_to_pot(session, interaction.guild_id, self.bot, interaction.channel_id, essence_amount=amount)
+            await interaction.response.send_message(f"🌟 **Offering Accepted!** You donated **{amount}x {essence_type}** to the Well of Souls. The resonance grows stronger...")
 
     @app_commands.command(name="vault", description="Check the status of the Well of Souls (Guild Pot).")
     async def vault(self, interaction: discord.Interaction):

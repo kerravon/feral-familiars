@@ -70,6 +70,7 @@ A Discord-based creature collection and ritual game where players capture mystic
 ### 5. Social Systems
 *   **The Well of Souls (Guild Pot):** 
     *   Taxes from gifting and trading are collected into a community pot (viewable via `/vault`).
+    *   **`/donate`:** Voluntarily contribute essences to the Well to speed up the next Surge.
     *   **Overflow Surge:** When the Well reaches its threshold (Default 1000 essences), it triggers a massive, server-wide Prismatic Surge (8 rapid spawns).
 *   **`/bestow` (Gift):** 
     *   **Limit:** 1 Spirit / 50 Essences per day (Reset Midnight UTC).

@@ -43,7 +43,7 @@ When trading, the **RECIPIENT** pays the ritual fee (tax) into the **Well of Sou
 
 ## 🌌 The Well of Souls (Guild Pot)
 All ritual fees from gifting and trading are collected into the server's **Well of Souls**.
-- **Command:** `/vault`
+- **Commands:** `/vault` (View status), `/donate` (Contribute voluntarily).
 - **Overflow Event:** When the total essence in the Well reaches its threshold (Default 1,000), it overflows, triggering a **Prismatic Surge**—a series of **8 immediate spawns** for everyone in the server!
 
 ## 🔥 Resonance & Passives

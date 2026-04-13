@@ -42,6 +42,8 @@ async def migrate():
 
         # 4. Update 'channel_configs' table
         print("Updating 'channel_configs' table...")
+        await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS activity_score INTEGER DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS pity_count INTEGER DEFAULT 0"))
         await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS active_lure_type VARCHAR(20)"))
         await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS active_lure_subtype VARCHAR(20)"))
         await conn.execute(text("ALTER TABLE channel_configs ADD COLUMN IF NOT EXISTS lure_expires_at TIMESTAMP"))

@@ -2,18 +2,96 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 from sqlalchemy import update, select
+import asyncio
+import logging
+import random
+
 from bot.db import AsyncSessionLocal
 from bot.services.ritual_service import RitualService
 from bot.services.passive_service import PassiveService
 from bot.services.inventory_service import InventoryService
 from bot.services.surge_service import SurgeService
+from bot.services.encounter_service import EncounterService
+from bot.services.leveling_service import LevelingService
+from bot.services.guidance_service import GuidanceService
 from bot.models.familiar import Familiar, Spirit
 from bot.utils.constants import GameConstants
-import asyncio
+from bot.utils.config import Config
+
+logger = logging.getLogger("FeralFamiliars")
 
 class GameCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.author.bot: return
+        
+        content = message.content.lower().strip()
+        if content not in ["bind", "bind spirit"]: return
+
+        logger.info(f"Capture attempt by {message.author.name}: {content}")
+        async with AsyncSessionLocal() as session:
+            encounter, result = await EncounterService.process_capture_attempt(session, message.channel.id, message.author.id, content)
+            
+            if encounter:
+                await message.reply(result)
+                logger.info(f"Capture SUCCESS: {message.author.name} bound {encounter.subtype}")
+                await asyncio.sleep(0.5)
+                try:
+                    msg = await message.channel.fetch_message(encounter.message_id)
+                    new_embed = discord.Embed(
+                        title=f"Captured by {message.author.display_name}!",
+                        description=f"The {encounter.subtype} {encounter.type} has been bound.",
+                        color=discord.Color.green()
+                    )
+                    if encounter.type == "essence":
+                        bound_url = GameConstants.BOUND_IMAGES.get(encounter.subtype)
+                    else:
+                        bound_url = GameConstants.SPIRIT_BOUND_IMAGES.get(encounter.subtype)
+                    
+                    if bound_url:
+                        new_embed.set_image(url=bound_url)
+                    if encounter.rarity:
+                        new_embed.add_field(name="Rarity", value=encounter.rarity.upper())
+                    await msg.edit(embed=new_embed)
+                except Exception as e:
+                    logger.error(f"Failed to update capture message: {e}")
+                
+                if encounter.type == "essence":
+                    passive_msg = await PassiveService.trigger_passive_bonus(session, message.author.id, encounter.subtype)
+                    if passive_msg:
+                        await message.channel.send(passive_msg)
+                
+                # --- Award XP to summoned familiar ---
+                active_fam = await PassiveService.get_active_familiar(session, message.author.id)
+                if active_fam:
+                    xp_amount = 10 if (encounter.type == "essence" and encounter.subtype == active_fam.essence_type) else 5
+                    level_ups = await LevelingService.add_xp(session, active_fam, xp_amount)
+                    
+                    for level_up in level_ups:
+                        lvl = level_up['level']
+                        roll = level_up['roll']
+                        unlocks = "\n".join([f"✨ **Unlocked:** {u}" for u in level_up['unlocks']])
+                        
+                        embed = discord.Embed(
+                            title=f"🌟 LEVEL UP: {active_fam.name}!",
+                            description=f"Your familiar has reached **Level {lvl}**!\n\n"
+                                        f"📈 **Growth Roll:** +{roll:.2%}\n"
+                                        f"{unlocks}",
+                            color=discord.Color.gold()
+                        )
+                        await message.channel.send(content=f"<@{message.author.id}>", embed=embed)
+
+                # --- Guidance Milestone Check ---
+                tip_embed = await GuidanceService.check_milestone(session, message.author.id, encounter.type)
+                if tip_embed:
+                    await message.channel.send(content=f"<@{message.author.id}>", embed=tip_embed)
+            else:
+                if result:
+                    await message.reply(result, delete_after=5)
+                    logger.info(f"Capture FAILED for {message.author.name}: {result}")
 
     async def spirit_autocomplete(self, interaction: discord.Interaction, current: str):
         async with AsyncSessionLocal() as session:
@@ -138,7 +216,29 @@ class GameCog(commands.Cog):
 
     @app_commands.command(name="vault", description="Check the status of the Well of Souls (Guild Pot).")
     async def vault(self, interaction: discord.Interaction):
-...
+        from bot.services.guild_service import GuildService
+        async with AsyncSessionLocal() as session:
+            config = await GuildService.get_guild_config(session, interaction.guild_id)
+            
+            progress = (config.pot_essence_total / config.surge_threshold) * 100
+            
+            embed = discord.Embed(
+                title="🌌 The Well of Souls",
+                description="Elemental taxes and offerings are gathered here. When the Well overflows, a massive resonance surge occurs!",
+                color=discord.Color.dark_purple()
+            )
+            embed.add_field(name="Total Essence", value=f"💎 {config.pot_essence_total} / {config.surge_threshold}", inline=True)
+            embed.add_field(name="Spirits Held", value=f"👻 {config.pot_spirit_total}", inline=True)
+            
+            # Progress bar
+            filled = int(progress / 10)
+            bar = "🟦" * filled + "⬛" * (10 - filled)
+            embed.add_field(name="Overflow Progress", value=f"{bar} ({progress:.1f}%)", inline=False)
+            
+            embed.set_footer(text="Gifting and Trading adds to the Well. Voluntary contributions coming soon!")
+            
+            await interaction.response.send_message(embed=embed)
+
     @app_commands.command(name="feed", description="Feed essences to your active familiar to gain XP.")
     @app_commands.describe(
         essence_type="Type of essence to feed",

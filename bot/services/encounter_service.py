@@ -105,13 +105,31 @@ class EncounterService:
             Encounter.expires_at < datetime.now()
         )
         result = await session.execute(stmt)
-        expired = result.scalars().all()
+        return result.scalars().all()
+
+    @staticmethod
+    async def handle_soul_anchor(session: AsyncSession, encounter: Encounter):
+        """Checks for Restless Soul Anchor and extends encounter if triggered. Returns True if anchored."""
+        if encounter.type != "spirit":
+            return False
+            
+        from bot.models.familiar import Familiar
+        now = datetime.now()
         
-        for e in expired:
-            e.is_active = False
+        stmt = select(Familiar).where(
+            Familiar.active_until > now, 
+            Familiar.spirit_type == GameConstants.RESTLESS
+        ).limit(1)
+        res = await session.execute(stmt)
+        anchor_fam = res.scalar_one_or_none()
         
-        await session.commit()
-        return expired
+        if anchor_fam:
+            chances = {"common": 0.2, "uncommon": 0.3, "rare": 0.4, "legendary": 0.5}
+            if random.random() < chances.get(anchor_fam.rarity, 0.2):
+                encounter.expires_at = now + timedelta(seconds=30)
+                await session.commit()
+                return anchor_fam
+        return None
 
     @staticmethod
     async def process_capture_attempt(

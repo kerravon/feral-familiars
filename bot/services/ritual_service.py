@@ -4,6 +4,7 @@ from bot.models.familiar import Spirit, Familiar
 from bot.models.essence import Essence
 from bot.models.base import User
 from bot.utils.constants import GameConstants
+from bot.services.guidance_service import GuidanceService
 import random
 import logging
 
@@ -95,7 +96,11 @@ class RitualService:
                 # No need to commit nested, it commits when context manager exits
             
             await session.commit()
-            return True, familiar
+
+            # --- Guidance Milestone Check ---
+            tip_embed = await GuidanceService.check_milestone(session, user_id, "familiar")
+            
+            return True, (familiar, tip_embed)
             
         except Exception as e:
             await session.rollback()

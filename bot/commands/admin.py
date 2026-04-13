@@ -26,7 +26,12 @@ class AdminCog(commands.Cog):
             msg = f"✨ Spawns in this channel are now **{status}**.\n\n"
             msg += f"**Active Channels in this server:**\n{active_list}"
             
-            await interaction.response.send_message(msg)
+            if is_active:
+                from bot.services.guidance_service import GuidanceService
+                embed = GuidanceService.get_onboarding_embed()
+                await interaction.response.send_message(msg, embed=embed)
+            else:
+                await interaction.response.send_message(msg)
 
     @discord.app_commands.command(name="sync", description="Sync slash commands (Admin only)")
     async def sync(self, interaction: discord.Interaction):

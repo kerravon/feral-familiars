@@ -11,6 +11,7 @@ from bot.services.encounter_service import EncounterService
 from bot.services.passive_service import PassiveService
 from bot.services.config_service import ConfigService
 from bot.services.leveling_service import LevelingService
+from bot.services.guidance_service import GuidanceService
 from bot.utils.constants import GameConstants
 from bot.utils.config import Config
 
@@ -365,6 +366,11 @@ async def on_message(message: discord.Message):
                             color=discord.Color.gold()
                         )
                         await message.channel.send(content=f"<@{message.author.id}>", embed=embed)
+
+                # --- Guidance Milestone Check ---
+                tip_embed = await GuidanceService.check_milestone(session, message.author.id, encounter.type)
+                if tip_embed:
+                    await message.channel.send(content=f"<@{message.author.id}>", embed=tip_embed)
             else:
                 if result:
                     await message.reply(result, delete_after=5)

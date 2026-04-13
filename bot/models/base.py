@@ -24,6 +24,11 @@ class User(Base):
     daily_resonance_count: Mapped[int] = mapped_column(default=0)
     last_resonance_reset: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
+    # Milestone Guidance Flags
+    has_seen_essence_tip: Mapped[bool] = mapped_column(default=False)
+    has_seen_spirit_tip: Mapped[bool] = mapped_column(default=False)
+    has_seen_familiar_tip: Mapped[bool] = mapped_column(default=False)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     def __repr__(self) -> str:

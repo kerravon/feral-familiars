@@ -50,7 +50,10 @@ class GameCog(commands.Cog):
         async with AsyncSessionLocal() as session:
             success, result = await RitualService.create_familiar(session, interaction.user.id, spirit_id, essence_type)
             if success:
-                await interaction.response.send_message(f"✨ **Ritual Success!** You have created a **{result.name}**!")
+                familiar, tip_embed = result
+                await interaction.response.send_message(f"✨ **Ritual Success!** You have created a **{familiar.name}**!")
+                if tip_embed:
+                    await interaction.followup.send(embed=tip_embed)
             else:
                 await interaction.response.send_message(f"❌ **Ritual Failed:** {result}", ephemeral=True)
 

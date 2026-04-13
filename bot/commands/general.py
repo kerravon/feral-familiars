@@ -8,7 +8,7 @@ from bot.services.inventory_service import InventoryService
 from bot.services.config_service import ConfigService
 from bot.models.familiar import Familiar
 from bot.models.base import User
-from bot.utils.ui import FamiliarView
+from bot.utils.ui import FamiliarView, HelpView
 
 class GeneralCog(commands.Cog):
     def __init__(self, bot):
@@ -93,6 +93,16 @@ class GeneralCog(commands.Cog):
                     ignite_btn.label = "Resonating..."
 
             await interaction.response.send_message(embed=embed, view=view)
+
+    @discord.app_commands.command(name="help", description="Get guidance on how to play Feral Familiars.")
+    async def help(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="📜 The Mystic's Archive",
+            description="Choose a category below to learn about the secrets of the world.",
+            color=discord.Color.blue()
+        )
+        view = HelpView()
+        await interaction.response.send_message(embed=embed, view=view)
 
     @discord.app_commands.command(name="incense", description="Ignite spectral incense to guarantee spawns in this channel for a set time.")
     @discord.app_commands.describe(

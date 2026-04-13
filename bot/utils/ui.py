@@ -222,3 +222,58 @@ class FamiliarView(ui.View):
                 await interaction.followup.send(f"🔥 **{result.name}'s resonance has been ignited!** Passive effects are active for the next 4 hours.")
             else:
                 await interaction.response.send_message(f"❌ {result}", ephemeral=True)
+
+class HelpSelect(ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Overview", value="overview", description="What is Feral Familiars?", emoji="🌊"),
+            discord.SelectOption(label="Binding", value="binding", description="How to capture items", emoji="🪢"),
+            discord.SelectOption(label="Rituals", value="rituals", description="Creating companions", emoji="🧪"),
+            discord.SelectOption(label="Leveling", value="leveling", description="XP and Progression", emoji="📈"),
+            discord.SelectOption(label="The Well", value="well", description="Taxes and Surges", emoji="🤝"),
+        ]
+        super().__init__(placeholder="Choose a category...", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        category = self.values[0]
+        embed = discord.Embed(color=discord.Color.blue())
+        
+        if category == "overview":
+            embed.title = "🌊 Master Game Overview"
+            embed.description = (
+                "Feral Familiars is a social creature-collection game. "
+                "Capture elemental energy, bind spirits, and raise powerful familiars "
+                "to unlock mystical passive abilities."
+            )
+            embed.add_field(name="Commands", value="`/inventory`, `/familiars`, `/vault`")
+            
+        elif category == "binding":
+            embed.title = "🪢 The Art of Binding"
+            embed.description = "When a spawn appears, be the first to type the correct keyword."
+            embed.add_field(name="Keywords", value="`bind` (Essences)\n`bind spirit` (Spirits)")
+            embed.add_field(name="Rules", value="1s delay after spawn (Anti-macro)\n45s window before fading")
+            
+        elif category == "rituals":
+            embed.title = "🧪 Ritual of Creation"
+            embed.description = "Combine 1 Spirit with matching Essences to create a Familiar."
+            embed.add_field(name="Costs", value="Common: 10 | Uncommon: 20\nRare: 40 | Legendary: 80")
+            embed.add_field(name="Restless", value="Requires +5 to +25 extra Arcane Essence.")
+            
+        elif category == "leveling":
+            embed.title = "📈 Progression & Leveling"
+            embed.description = "Raise your familiar up to Level 10 to boost its power."
+            embed.add_field(name="XP Sources", value="Binding items while summoned\nFeeding essences via `/feed`")
+            embed.add_field(name="Unlocks", value="Lv. 5: PULSE Mode\nLv. 8: ATTRACT Mode")
+            
+        elif category == "well":
+            embed.title = "🤝 The Well of Souls"
+            embed.description = " Ritual fees are gathered into a community pot."
+            embed.add_field(name="Taxes", value="3% fee on Gifting and Trading.")
+            embed.add_field(name="Prismatic Surge", value="When the Well overflows, 8 items spawn for the whole server!")
+
+        await interaction.response.edit_message(embed=embed, view=self.view)
+
+class HelpView(ui.View):
+    def __init__(self):
+        super().__init__(timeout=180)
+        self.add_item(HelpSelect())

@@ -2,11 +2,10 @@ import asyncio
 import os
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
-
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://arcane_user:arcane_pass@db:5432/arcane_db")
+from bot.utils.config import Config
 
 async def migrate():
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(Config.DATABASE_URL)
     
     async with engine.begin() as conn:
         print("Starting migration...")

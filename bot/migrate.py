@@ -29,7 +29,9 @@ async def migrate():
         await conn.execute(text("ALTER TABLE familiars ADD COLUMN IF NOT EXISTS daily_trigger_count INTEGER DEFAULT 0"))
         await conn.execute(text("ALTER TABLE familiars ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1"))
         await conn.execute(text("ALTER TABLE familiars ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0"))
+        await conn.execute(text("ALTER TABLE familiars ADD COLUMN IF NOT EXISTS growth_bonus DOUBLE PRECISION DEFAULT 0.0"))
         await conn.execute(text("ALTER TABLE familiars ADD COLUMN IF NOT EXISTS resonance_mode VARCHAR(20) DEFAULT 'echo'"))
+        await conn.execute(text("ALTER TABLE familiars ADD COLUMN IF NOT EXISTS attract_element VARCHAR(20)"))
 
         # 3. Update 'encounters' table
         print("Updating 'encounters' table...")

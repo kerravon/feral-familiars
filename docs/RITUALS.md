@@ -59,6 +59,16 @@ Once a familiar is created and `/summoned`, you must ignite its resonance to ben
 - **Triggers:** **Unlimited** during the 4-hour window.
 
 ### Modes
-Players can switch between two resonance modes at any time:
-1.  **ECHO (Default):** Grants a chance to gain an extra essence of the **same type** as the one captured.
-2.  **PULSE:** Grants a chance to gain an extra essence of a **random different element**.
+Players can switch resonance modes at any time, provided they have reached the required Level:
+1.  **ECHO (Level 1):** Grants a chance to gain an extra essence of the **same type** as the one captured.
+2.  **PULSE (Level 5):** Grants a chance to gain an extra essence of a **random different element**.
+3.  **ATTRACT (Level 8):** Grants a chance to gain an extra essence of a **player-chosen element** (Set via `/set-attract`).
+
+## 📈 Feeding & Progression
+Familiars gain XP and grow in power through binding and feeding.
+- **XP per Level:** Requirements increase with level (e.g., 100 XP for Level 2, up to 4,000 XP for Level 10).
+- **Growth Rolls:** Every level-up grants a permanent **+0.5% to +2.0%** bonus to the familiar's passive trigger chance.
+- **Feeding Command:** `/feed [familiar] [essence] [amount]`
+  - Matching Element: 10 XP/ea.
+  - Arcane Essence: 20 XP/ea.
+  - Other Essence: 2 XP/ea.

@@ -38,6 +38,30 @@ Rarity determines the creation cost and the **success chance of Passive Effects*
 ## 🟢 Active Familiars
 Equipping a familiar using `/summon` makes it your active companion. 
 - **Stable Limit:** You can hold a maximum of **3** familiars (Default, configurable via `DEFAULT_STABLE_LIMIT`).
+
+## 📈 Familiar Leveling
+Familiars grow in power as you interact with them. A higher level increases the success rate of their passive effects and unlocks new resonance modes.
+
+### Gaining Experience (XP)
+- **Binding:** Capturing an item while a familiar is **summoned** grants XP.
+  - Standard Capture: **+5 XP**
+  - Matching Element Capture: **+10 XP**
+- **Feeding:** Use the `/feed` command to burn excess essences for rapid XP gain.
+  - Matching Essence: **10 XP** per essence.
+  - Arcane Essence: **20 XP** per essence.
+  - Different Essence: **2 XP** per essence.
+
+### Progression & Unlocks
+| Level | Unlock / Milestone |
+| :--- | :--- |
+| **1** | **ECHO Mode** (Standard duplication) |
+| **2-4** | Permanent +0.5% to +2.0% trigger chance bonus. |
+| **5** | **PULSE Mode** (Transmute energy into random elements) |
+| **6-7** | Permanent +0.5% to +2.0% trigger chance bonus. |
+| **8** | **ATTRACT Mode** (Focus on a specific element via `/set-attract`) |
+| **9** | Permanent +0.5% to +2.0% trigger chance bonus. |
+| **10** | **MAX LEVEL** (Final growth roll) |
+
 - **Passive Bonuses:**
   - **Base Familiars:** % Chance to gain an extra essence based on the **Mode**.
   - **Arcane Familiars:**

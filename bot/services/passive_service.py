@@ -88,13 +88,33 @@ class PassiveService:
 
     @staticmethod
     async def set_resonance_mode(session: AsyncSession, user_id: int, familiar_id: int, mode: str):
-        """Switches between Echo and Pulse modes."""
+        """Switches between Echo, Pulse, and Attract modes based on level."""
         stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
         result = await session.execute(stmt)
         familiar = result.scalar_one_or_none()
         if not familiar: return False, "Familiar not found."
         
+        if mode == "pulse" and familiar.level < 5:
+            return False, "PULSE mode requires Level 5."
+        if mode == "attract" and familiar.level < 8:
+            return False, "ATTRACT mode requires Level 8."
+        
         familiar.resonance_mode = mode
+        await session.commit()
+        return True, familiar
+
+    @staticmethod
+    async def set_attract_element(session: AsyncSession, user_id: int, familiar_id: int, element: str):
+        """Sets the target element for Attract mode."""
+        stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
+        result = await session.execute(stmt)
+        familiar = result.scalar_one_or_none()
+        if not familiar: return False, "Familiar not found."
+        
+        if element.title() not in GameConstants.ESSENCES:
+            return False, "Invalid essence type."
+            
+        familiar.attract_element = element.title()
         await session.commit()
         return True, familiar
 
@@ -110,8 +130,7 @@ class PassiveService:
         if not familiar.active_until or now > familiar.active_until:
             return None # Not in resonance mode
         
-        # Scaling: New Lower Chances
-        # Common: 8%, Uncommon: 15%, Rare: 25%, Legendary: 40%
+        # Base Scaling
         chance_map = {
             GameConstants.COMMON: 0.08,
             GameConstants.UNCOMMON: 0.15,
@@ -119,25 +138,34 @@ class PassiveService:
             GameConstants.LEGENDARY: 0.40
         }
         
+        # Dynamic Chance: Base + Arcane Bonus + Growth Bonus
         chance = chance_map.get(familiar.rarity, 0.08)
-        
-        # Arcane familiars (+10% flat bonus)
         if familiar.essence_type == GameConstants.ARCANE:
             chance += 0.10
+        
+        chance += familiar.growth_bonus
 
         if random.random() > chance:
             return None
 
         # Determine which essence to give
         give_type = captured_type
-        if familiar.resonance_mode == "pulse":
+        mode = familiar.resonance_mode
+        
+        if mode == "pulse":
             # Pulse Mode: Give a random DIFFERENT element
             choices = [e for e in GameConstants.ESSENCES if e != captured_type]
             give_type = random.choice(choices)
+        elif mode == "attract":
+            # Attract Mode: Give the specific element chosen by the player (Default to Arcane if none)
+            give_type = familiar.attract_element or GameConstants.ARCANE
         
         # 1. Base Element check (only match in Echo mode)
         # 2. Arcane check (always works)
-        can_trigger = (familiar.essence_type == captured_type) or (familiar.essence_type == GameConstants.ARCANE) or (familiar.resonance_mode == "pulse")
+        # 3. Pulse/Attract (always works if unlocked)
+        can_trigger = (familiar.essence_type == captured_type) or \
+                      (familiar.essence_type == GameConstants.ARCANE) or \
+                      (mode in ["pulse", "attract"])
 
         if not can_trigger:
             return None
@@ -147,14 +175,18 @@ class PassiveService:
         res = await session.execute(stmt)
         ess = res.scalar_one_or_none()
         if not ess:
-            ess = Essence(user_id=user_id, type=give_type, count=1)
+            from bot.utils.config import Config
+            ess = Essence(user_id=user_id, type=give_type, count=min(1, Config.MAX_ESSENCES))
             session.add(ess)
         else:
-            ess.count += 1
+            from bot.utils.config import Config
+            ess.count = min(ess.count + 1, Config.MAX_ESSENCES)
         
         emoji = "✨" if familiar.essence_type == GameConstants.ARCANE else "🌀"
-        if familiar.resonance_mode == "pulse":
+        if mode == "pulse":
             effect_msg = f"{emoji} **{familiar.name}**'s pulse transmuted the energy into {give_type} essence!"
+        elif mode == "attract":
+            effect_msg = f"{emoji} **{familiar.name}**'s attraction manifested an extra {give_type} essence!"
         else:
             effect_msg = f"{emoji} **{familiar.name}**'s resonance duplicated the {captured_type} essence!"
         

@@ -38,7 +38,19 @@ class GeneralCog(commands.Cog):
             embed = discord.Embed(title=f"🐾 {f.name}", color=discord.Color.gold())
             embed.add_field(name="Type", value=f"{f.spirit_type} / {f.essence_type}", inline=True)
             embed.add_field(name="Rarity", value=f.rarity.title(), inline=True)
+            embed.add_field(name="Level", value=f"**Lv. {f.level}** / 10", inline=True)
             
+            # XP Progress Bar
+            from bot.services.leveling_service import LevelingService
+            xp_needed = LevelingService.XP_CURVE.get(f.level, 0)
+            if xp_needed > 0:
+                progress = (f.xp / xp_needed) * 100
+                filled = int(progress / 10)
+                bar = "🟦" * filled + "⬛" * (10 - filled)
+                embed.add_field(name="Experience", value=f"{bar} {f.xp}/{xp_needed} XP ({progress:.1f}%)", inline=False)
+            else:
+                embed.add_field(name="Experience", value="🌟 **MAX LEVEL**", inline=False)
+
             now = datetime.now()
             status = "💤 Inactive"
             if f.active_until and now < f.active_until:
@@ -51,25 +63,34 @@ class GeneralCog(commands.Cog):
             chance_map = {"common": 8, "uncommon": 15, "rare": 25, "legendary": 40}
             base_chance = chance_map.get(f.rarity, 8)
             if f.essence_type == "Arcane": base_chance += 10
+            
+            total_chance = base_chance + (f.growth_bonus * 100)
 
-            mode_desc = "**ECHO:** 2x chance for same element." if f.resonance_mode == "echo" else "**PULSE:** Chance for a RANDOM element."
-            passive_desc = f"{mode_desc}\n**Trigger Chance:** {base_chance}%"
+            mode_info = {
+                "echo": "**ECHO:** 2x chance for same element.",
+                "pulse": "**PULSE:** Chance for a RANDOM element.",
+                "attract": f"**ATTRACT:** Attracts **{f.attract_element or 'Arcane'}** essence."
+            }
+            mode_desc = mode_info.get(f.resonance_mode, "Unknown Mode")
+            passive_desc = f"{mode_desc}\n**Trigger Chance:** {total_chance:.1f}% ({base_chance}% base + {f.growth_bonus:.1%} growth)"
 
             embed.add_field(name=f"Passive Power ({f.resonance_mode.upper()})", value=passive_desc, inline=False)
 
 
-            view = FamiliarView(f.id, interaction.user.id)
+            view = FamiliarView(f, interaction.user.id)
             # Disable button if already active, used today, or NOT SUMMONED
+            # Note: button index is 1 because select menu is index 0
+            ignite_btn = view.children[1] 
             if not f.is_active:
-                view.children[0].disabled = True
-                view.children[0].label = "Summon First"
+                ignite_btn.disabled = True
+                ignite_btn.label = "Summon First"
             elif f.last_activated_at and f.last_activated_at.date() == now.date():
                 if not (f.active_until and now < f.active_until):
-                    view.children[0].disabled = True
-                    view.children[0].label = "Used Today"
+                    ignite_btn.disabled = True
+                    ignite_btn.label = "Used Today"
                 else:
-                    view.children[0].disabled = True
-                    view.children[0].label = "Resonating..."
+                    ignite_btn.disabled = True
+                    ignite_btn.label = "Resonating..."
 
             await interaction.response.send_message(embed=embed, view=view)
 
@@ -209,10 +230,13 @@ class GeneralCog(commands.Cog):
 
         # 4. Gifting & Trading Taxes
         taxes_text = (
-            "**Gifting (Bestow):** Sender pays 2% fee (Spirits: 1-13)\n"
-            "**Trading (Transmute):** Recipient pays 5% fee (Spirits: 2-25)"
+            "Every ritual fee is paid to the **Well of Souls**:\n"
+            "**Gifting (Bestow):** Sender pays 3% fee (Spirits: 2-25)\n"
+            "**Trading (Transmute):** Recipient pays 3% fee (Spirits: 2-25)\n\n"
+            "**XP & Leveling:**\n"
+            "Feed your familiar essences via **/feed** to level them up (Max 10)!"
         )
-        embed.add_field(name="🤝 Social Taxes", value=taxes_text, inline=False)
+        embed.add_field(name="🤝 Social Taxes & XP", value=taxes_text, inline=False)
         
         embed.set_footer(text="Check your /inventory to see how many Incense minutes you have stored.")
         await interaction.response.send_message(embed=embed)

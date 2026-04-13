@@ -135,28 +135,82 @@ class GameCog(commands.Cog):
 
     @app_commands.command(name="vault", description="Check the status of the Well of Souls (Guild Pot).")
     async def vault(self, interaction: discord.Interaction):
-        from bot.services.guild_service import GuildService
+...
+    @app_commands.command(name="feed", description="Feed essences to your active familiar to gain XP.")
+    @app_commands.describe(
+        essence_type="Type of essence to feed",
+        amount="How many essences to feed"
+    )
+    @app_commands.autocomplete(essence_type=essence_autocomplete)
+    async def feed(self, interaction: discord.Interaction, essence_type: str, amount: int):
+        if amount <= 0:
+            await interaction.response.send_message("You must feed at least 1 essence.", ephemeral=True)
+            return
+
+        essence_type = essence_type.title()
         async with AsyncSessionLocal() as session:
-            config = await GuildService.get_guild_config(session, interaction.guild_id)
+            # 1. Get active familiar
+            active_fam = await PassiveService.get_active_familiar(session, interaction.user.id)
+            if not active_fam:
+                await interaction.response.send_message("You must have a familiar **summoned** to feed it!", ephemeral=True)
+                return
             
-            progress = (config.pot_essence_total / config.surge_threshold) * 100
+            if active_fam.level >= 10:
+                await interaction.response.send_message(f"**{active_fam.name}** is already at maximum level!", ephemeral=True)
+                return
+
+            # 2. Deduct Essence
+            success = await InventoryService.deduct_essence(session, interaction.user.id, essence_type, amount)
+            if not success:
+                await interaction.response.send_message(f"You don't have {amount}x {essence_type} essences.", ephemeral=True)
+                return
+
+            # 3. Calculate XP
+            # Matching: 10, Arcane: 20, Other: 2
+            multiplier = 2
+            if essence_type == active_fam.essence_type:
+                multiplier = 10
+            elif essence_type == GameConstants.ARCANE:
+                multiplier = 20
             
-            embed = discord.Embed(
-                title="🌌 The Well of Souls",
-                description="Elemental taxes and offerings are gathered here. When the Well overflows, a massive resonance surge occurs!",
-                color=discord.Color.dark_purple()
-            )
-            embed.add_field(name="Total Essence", value=f"💎 {config.pot_essence_total} / {config.surge_threshold}", inline=True)
-            embed.add_field(name="Spirits Held", value=f"👻 {config.pot_spirit_total}", inline=True)
+            xp_gain = amount * multiplier
             
-            # Progress bar
-            filled = int(progress / 10)
-            bar = "🟦" * filled + "⬛" * (10 - filled)
-            embed.add_field(name="Overflow Progress", value=f"{bar} ({progress:.1f}%)", inline=False)
+            # 4. Add XP
+            from bot.services.leveling_service import LevelingService
+            level_ups = await LevelingService.add_xp(session, active_fam, xp_gain)
             
-            embed.set_footer(text="Gifting and Trading adds to the Well. Voluntary contributions coming soon!")
+            # 5. Feedback
+            await interaction.response.send_message(f"✨ You fed **{amount}x {essence_type}** to **{active_fam.name}**, gaining **{xp_gain} XP**!")
             
-            await interaction.response.send_message(embed=embed)
+            for level_up in level_ups:
+                lvl = level_up['level']
+                roll = level_up['roll']
+                unlocks = "\n".join([f"✨ **Unlocked:** {u}" for u in level_up['unlocks']])
+                
+                embed = discord.Embed(
+                    title=f"🌟 LEVEL UP: {active_fam.name}!",
+                    description=f"Your familiar has reached **Level {lvl}**!\n\n"
+                                f"📈 **Growth Roll:** +{roll:.2%}\n"
+                                f"{unlocks}",
+                    color=discord.Color.gold()
+                )
+                await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="set-attract", description="Choose which element your Level 8+ familiar attracts.")
+    @app_commands.describe(element="The element to attract during resonance")
+    @app_commands.autocomplete(element=essence_autocomplete)
+    async def set_attract(self, interaction: discord.Interaction, element: str):
+        async with AsyncSessionLocal() as session:
+            active_fam = await PassiveService.get_active_familiar(session, interaction.user.id)
+            if not active_fam or active_fam.level < 8:
+                await interaction.response.send_message("Only Level 8+ summoned familiars can use ATTRACT mode.", ephemeral=True)
+                return
+            
+            success, result = await PassiveService.set_attract_element(session, interaction.user.id, active_fam.id, element)
+            if success:
+                await interaction.response.send_message(f"🎯 **{active_fam.name}** is now focused on attracting **{element.title()}** essences!")
+            else:
+                await interaction.response.send_message(f"❌ Failed: {result}", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(GameCog(bot))

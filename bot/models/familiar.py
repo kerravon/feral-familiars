@@ -35,9 +35,11 @@ class Familiar(Base):
     # Leveling Fields
     level: Mapped[int] = mapped_column(default=1)
     xp: Mapped[int] = mapped_column(default=0)
+    growth_bonus: Mapped[float] = mapped_column(default=0.0)
     
     # Resonance Customization
-    resonance_mode: Mapped[str] = mapped_column(String(20), default="echo") # echo, pulse
+    resonance_mode: Mapped[str] = mapped_column(String(20), default="echo") # echo, pulse, attract
+    attract_element: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 

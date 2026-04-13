@@ -56,7 +56,17 @@ A Discord-based creature collection and ritual game where players capture mystic
 *   **Costs:** Common (10), Uncommon (20), Rare (40), Legendary (80).
 *   **Naming:** Dynamic word banks based on Type + Rarity (e.g., "Tectonic Wraith-Lord").
 
-### 4. Passive Resonance (Power)
+### 4. Familiar Leveling & Progression
+*   **Max Level:** 10.
+*   **XP Sources:** 
+    *   **Binding:** Standard (+5 XP), Matching Element (+10 XP).
+    *   **Feeding:** Use `/feed` to burn essences for XP (Matching: 10x, Arcane: 20x, Other: 2x).
+*   **Growth Rolls:** Each level-up grants a permanent **+0.5% to +2.0%** bonus to passive trigger chances.
+*   **Unlocks:**
+    *   **Level 5:** **PULSE Mode** (Random different element).
+    *   **Level 8:** **ATTRACT Mode** (Choose specific element via `/set-attract`).
+
+### 5. Passive Resonance (Power)
 *   **Activation:** Must manually ignite via **/familiar [name]**.
 *   **Duration:** **4 Hours** (Unlimited triggers during window).
 *   **Player Limit:** **2 ignites per day** total across all familiars.
@@ -78,6 +88,7 @@ A Discord-based creature collection and ritual game where players capture mystic
 *   **`/transmute` (Trade):** 
     *   **UI:** "Cat Bot" style interactive buttons and modals.
     *   **Tax:** **Recipient** pays 3% essence fee (Min 1) and rarity-based spirit fee to the Well of Souls.
+*   **`/set-attract`:** Set the target element for Level 8+ familiars.
 *   **Resonance Surges (Releasing):** Releasing items creates immediate spawns for the server. Releaser is blacklisted from the surge.
 
 ---
@@ -90,7 +101,7 @@ bot/
 ├── migrate.py           # Manual migration script for DB updates
 ├── commands/            # Slash Command Cogs (With Autocomplete for Spirits/Familiars)
 ├── models/              # Database Schemas (User, Essence, Spirit, Familiar, Encounter, Config, Trade)
-├── services/            # Business Logic (Inventory, Ritual, Encounter, Bestow, Transmute, Passive)
+├── services/            # Business Logic (Inventory, Ritual, Encounter, Bestow, Transmute, Passive, Guild, Leveling)
 ├── utils/               
 │   ├── constants.py     # Naming banks, Costs, & Image URLs
 │   ├── config.py        # Centralized environment variable management
@@ -117,5 +128,4 @@ bot/
 
 ## 📝 Current Action Items
 - [ ] Finalize artwork for Arcane essence and all Spirit types.
-- [ ] Implement "Leveling" logic for active familiars.
 - [ ] Add a leaderboard for top collectors.

@@ -10,6 +10,7 @@ from bot.db import init_db, AsyncSessionLocal
 from bot.services.encounter_service import EncounterService
 from bot.services.passive_service import PassiveService
 from bot.services.config_service import ConfigService
+from bot.services.leveling_service import LevelingService
 from bot.utils.constants import GameConstants
 from bot.utils.config import Config
 
@@ -344,6 +345,26 @@ async def on_message(message: discord.Message):
                     passive_msg = await PassiveService.trigger_passive_bonus(session, message.author.id, encounter.subtype)
                     if passive_msg:
                         await message.channel.send(passive_msg)
+                
+                # --- Award XP to summoned familiar ---
+                active_fam = await PassiveService.get_active_familiar(session, message.author.id)
+                if active_fam:
+                    xp_amount = 10 if (encounter.type == "essence" and encounter.subtype == active_fam.essence_type) else 5
+                    level_ups = await LevelingService.add_xp(session, active_fam, xp_amount)
+                    
+                    for level_up in level_ups:
+                        lvl = level_up['level']
+                        roll = level_up['roll']
+                        unlocks = "\n".join([f"✨ **Unlocked:** {u}" for u in level_up['unlocks']])
+                        
+                        embed = discord.Embed(
+                            title=f"🌟 LEVEL UP: {active_fam.name}!",
+                            description=f"Your familiar has reached **Level {lvl}**!\n\n"
+                                        f"📈 **Growth Roll:** +{roll:.2%}\n"
+                                        f"{unlocks}",
+                            color=discord.Color.gold()
+                        )
+                        await message.channel.send(content=f"<@{message.author.id}>", embed=embed)
             else:
                 if result:
                     await message.reply(result, delete_after=5)

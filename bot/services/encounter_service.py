@@ -36,9 +36,11 @@ class EncounterService:
         duration_seconds = Config.CAPTURE_WINDOW_SECONDS
         
         # --- Temporal Anchor (Arcane Passive) ---
-        # Check if anyone in this guild has an active Arcane familiar
-        # Let's do a more performant check: Is there ANY active Arcane familiar?
-        stmt_arcane = select(Familiar).where(Familiar.is_active == True, Familiar.essence_type == GameConstants.ARCANE).limit(1)
+        # Check if anyone has an IGNITED Arcane familiar
+        stmt_arcane = select(Familiar).where(
+            Familiar.active_until > datetime.now(), 
+            Familiar.essence_type == GameConstants.ARCANE
+        ).limit(1)
         arcane_res = await session.execute(stmt_arcane)
         has_arcane_anchor = arcane_res.scalar_one_or_none() is not None
 

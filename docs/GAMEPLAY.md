@@ -75,8 +75,8 @@ Familiars grow in power as you interact with them. A higher level increases the 
   - Can be ignited **once per day** per specific familiar.
   - **Unlimited Triggers:** No limit on how many times the passive can trigger during the 4-hour window.
 - **Resonance Modes:**
-  - **ECHO (Default):** The familiar doubles the essence type you just captured (e.g., Fire familiar gives an extra Fire essence).
-  - **PULSE:** The familiar transmutes the energy into a **random different** element (e.g., Fire familiar gives an extra Water essence).
+  - **ECHO (Default):** The familiar doubles the essence type you just captured, provided it **matches the familiar's own element** (e.g., a Fire familiar only doubles Fire captures). **Arcane Familiars** are the exception—their ECHO power doubles *any* element.
+  - **PULSE:** The familiar transmutes the energy into a **random different** element.
 
 ## 🍂 Releasing
 If your inventory or stable is full, you can release items to make room. Releasing triggers a **Resonance Surge**—a series of immediate spawns in the current channel.

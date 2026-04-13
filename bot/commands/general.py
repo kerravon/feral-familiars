@@ -176,15 +176,10 @@ class GeneralCog(commands.Cog):
                         mins = int(delta.total_seconds() / 60)
                         resonance_status = f"🔥 RESONATING ({mins}m left)"
                     
-                    limit_map = {"common": 20, "uncommon": 25, "rare": 30, "legendary": 40}
-                    max_trig = limit_map.get(f.rarity, 20)
-                    triggers = f"{f.daily_trigger_count}/{max_trig} used"
-
                     field_value = (
                         f"**Type:** {f.spirit_type}/{f.essence_type}\n"
                         f"**Rarity:** {f.rarity.title()}\n"
-                        f"**Status:** {resonance_status}\n"
-                        f"**Passives:** {triggers}"
+                        f"**Status:** {resonance_status}"
                     )
                     
                     embed.add_field(name=f"{status_icon} {f.name} (ID: {f.id})", value=field_value, inline=False)

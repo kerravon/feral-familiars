@@ -60,7 +60,7 @@ Once a familiar is created and `/summoned`, you must ignite its resonance to ben
 
 ### Modes
 Players can switch resonance modes at any time, provided they have reached the required Level:
-1.  **ECHO (Level 1):** Grants a chance to gain an extra essence of the **same type** as the one captured.
+1.  **ECHO (Level 1):** Grants a chance to gain an extra essence of the **same type** as the one captured, provided the element **matches the familiar** (Arcane familiars double any element).
 2.  **PULSE (Level 5):** Grants a chance to gain an extra essence of a **random different element**.
 3.  **ATTRACT (Level 8):** Grants a chance to gain an extra essence of a **player-chosen element** (Set via `/set-attract`).
 

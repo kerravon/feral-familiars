@@ -1,12 +1,13 @@
+import random
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from bot.models.familiar import Spirit, Familiar
 from bot.models.essence import Essence
 from bot.models.base import User
-from bot.utils.constants import GameConstants
-from bot.services.guidance_service import GuidanceService
-import random
-import logging
+from bot.domain.enums import EssenceType, SpiritType, Rarity
+from bot.domain.constants import GameRules
+from bot.domain.naming import NamingRules
 
 logger = logging.getLogger("FeralFamiliars")
 
@@ -16,8 +17,9 @@ class RitualService:
         session: AsyncSession, 
         user_id: int, 
         spirit_id: int, 
-        essence_type: str
+        essence_type: EssenceType
     ):
+        """Creates a familiar. Does NOT commit."""
         try:
             # 1. Fetch Spirit
             stmt = select(Spirit).where(Spirit.id == spirit_id, Spirit.user_id == user_id)
@@ -28,27 +30,21 @@ class RitualService:
                 return False, "Spirit not found in your inventory."
             
             # 2. Check Cost
-            actual_cost = GameConstants.COST_MAP[spirit.rarity]
+            actual_cost = GameRules.RITUAL_COSTS[spirit.rarity]
             
             stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == essence_type)
             result = await session.execute(stmt)
             essence = result.scalar_one_or_none()
             
             if not essence or essence.count < actual_cost:
-                return False, f"Insufficient {essence_type} essences. Need {actual_cost}, you have {essence.count if essence else 0}."
+                return False, f"Insufficient {essence_type.value} essences. Need {actual_cost}, you have {essence.count if essence else 0}."
             
             # --- Restless Spirit Extra Cost (Arcane) ---
             arcane_cost = 0
             arcane_essence = None
-            if spirit.type == GameConstants.RESTLESS and essence_type != GameConstants.ARCANE:
-                arc_cost_map = {
-                    GameConstants.COMMON: 5,
-                    GameConstants.UNCOMMON: 10,
-                    GameConstants.RARE: 15,
-                    GameConstants.LEGENDARY: 25
-                }
-                arcane_cost = arc_cost_map[spirit.rarity]
-                stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == GameConstants.ARCANE)
+            if spirit.type == SpiritType.RESTLESS and essence_type != EssenceType.ARCANE:
+                arcane_cost = GameRules.RESTLESS_ARCANE_COSTS[spirit.rarity]
+                stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == EssenceType.ARCANE)
                 res = await session.execute(stmt)
                 arcane_essence = res.scalar_one_or_none()
                 if not arcane_essence or arcane_essence.count < arcane_cost:
@@ -66,54 +62,37 @@ class RitualService:
             if len(familiars) >= user.stable_limit:
                 return False, f"Stable is full ({user.stable_limit}). Expand your stable or release a familiar."
             
-            # 4. Perform Ritual (Atomic transaction via session.begin_nested() or just the outer session)
-            # Since we are likely in an 'async with AsyncSessionLocal() as session:' block,
-            # we should use a subtransaction if we want to be very safe, 
-            # but usually, we just rely on the session commit/rollback.
+            # 4. Perform Ritual (No internal commit)
+            essence.count -= actual_cost
+            if arcane_essence:
+                arcane_essence.count -= arcane_cost
             
-            async with session.begin_nested():
-                # Consume essence
-                essence.count -= actual_cost
-                if arcane_essence:
-                    arcane_essence.count -= arcane_cost
-                
-                # Consume spirit
-                await session.delete(spirit)
-                
-                # Create dynamic familiar name
-                adj = random.choice(GameConstants.ESSENCE_ADJECTIVES[essence_type][spirit.rarity])
-                noun = random.choice(GameConstants.SPIRIT_NOUNS[spirit.type][spirit.rarity])
-                familiar_name = f"{adj} {noun}"
-                
-                familiar = Familiar(
-                    user_id=user_id,
-                    spirit_type=spirit.type,
-                    essence_type=essence_type,
-                    rarity=spirit.rarity,
-                    name=familiar_name
-                )
-                session.add(familiar)
-                # No need to commit nested, it commits when context manager exits
+            await session.delete(spirit)
             
-            await session.commit()
-
-            # --- Guidance Milestone Check ---
-            tip_embed = await GuidanceService.check_milestone(session, user_id, "familiar")
+            familiar_name = NamingRules.generate_familiar_name(spirit.type, essence_type, spirit.rarity)
             
-            return True, (familiar, tip_embed)
+            familiar = Familiar(
+                user_id=user_id,
+                spirit_type=spirit.type,
+                essence_type=essence_type,
+                rarity=spirit.rarity,
+                name=familiar_name
+            )
+            session.add(familiar)
+            
+            return True, familiar
             
         except Exception as e:
-            await session.rollback()
             logger.error(f"Error during ritual: {e}", exc_info=True)
             return False, "An ancient disturbance interrupted the ritual. Please try again."
 
     @staticmethod
     async def delete_familiar(session: AsyncSession, user_id: int, familiar_id: int):
+        """Deletes a familiar. Does NOT commit."""
         stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == user_id)
         result = await session.execute(stmt)
         familiar = result.scalar_one_or_none()
         if familiar:
             await session.delete(familiar)
-            await session.commit()
             return True, familiar.name
         return False, "Familiar not found."

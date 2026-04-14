@@ -2,6 +2,7 @@ import discord
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from bot.models.base import User
+from bot.domain.enums import EncounterType
 import logging
 
 logger = logging.getLogger("FeralFamiliars")
@@ -32,7 +33,7 @@ class GuidanceService:
 
     @staticmethod
     async def check_milestone(session: AsyncSession, user_id: int, milestone_type: str):
-        """Checks if a user should receive a one-time tip based on their actions."""
+        """Checks if a user should receive a one-time tip. Does NOT commit."""
         stmt = select(User).where(User.id == user_id)
         result = await session.execute(stmt)
         user = result.scalar_one_or_none()
@@ -42,7 +43,7 @@ class GuidanceService:
 
         tip_embed = None
         
-        if milestone_type == "essence" and not user.has_seen_essence_tip:
+        if milestone_type == EncounterType.ESSENCE.value and not user.has_seen_essence_tip:
             user.has_seen_essence_tip = True
             tip_embed = discord.Embed(
                 title="✨ Your First Essence!",
@@ -54,7 +55,7 @@ class GuidanceService:
                 color=discord.Color.blue()
             )
         
-        elif milestone_type == "spirit" and not user.has_seen_spirit_tip:
+        elif milestone_type == EncounterType.SPIRIT.value and not user.has_seen_spirit_tip:
             user.has_seen_spirit_tip = True
             tip_embed = discord.Embed(
                 title="👻 A Spirit is Bound!",
@@ -77,7 +78,6 @@ class GuidanceService:
             )
 
         if tip_embed:
-            await session.commit()
             tip_embed.set_footer(text="Tip: Use /help at any time for detailed information.")
             return tip_embed
             

@@ -1,13 +1,14 @@
+import random
+from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
 from bot.models.encounter import Encounter, EncounterParticipant
 from bot.models.familiar import Familiar
 from bot.models.base import User
 from bot.services.inventory_service import InventoryService
-from bot.utils.constants import GameConstants
+from bot.domain.enums import EncounterType, EssenceType, SpiritType, Rarity
+from bot.domain.constants import GameRules, AssetUrls
 from bot.utils.config import Config
-from datetime import datetime, timedelta
-import random
 
 class EncounterService:
     @staticmethod
@@ -15,11 +16,12 @@ class EncounterService:
         session: AsyncSession, 
         channel_id: int, 
         guild_id: int,
-        type: str, # essence or spirit
+        type: EncounterType,
         override_subtype: str = None,
-        override_rarity: str = None,
+        override_rarity: Rarity = None,
         blacklisted_user_id: int = None
     ):
+        """Spawns an encounter. Does NOT commit."""
         # 1. Check if active encounter exists
         stmt = select(Encounter).where(
             Encounter.channel_id == channel_id, 
@@ -29,48 +31,48 @@ class EncounterService:
         existing = result.scalar_one_or_none()
         
         if existing:
-            # Still an active record in DB, wait for cleanup_loop to fade it
             return None
         
         # 2. Determine Rarity and Duration
         duration_seconds = Config.CAPTURE_WINDOW_SECONDS
         
         # --- Temporal Anchor (Arcane Passive) ---
-        # Check if anyone has an IGNITED Arcane familiar
         stmt_arcane = select(Familiar).where(
             Familiar.active_until > datetime.now(), 
-            Familiar.essence_type == GameConstants.ARCANE
+            Familiar.essence_type == EssenceType.ARCANE
         ).limit(1)
         arcane_res = await session.execute(stmt_arcane)
         has_arcane_anchor = arcane_res.scalar_one_or_none() is not None
 
-        if type == "essence":
-            subtype = override_subtype or random.choices(GameConstants.ESSENCES, weights=GameConstants.ESSENCE_WEIGHTS, k=1)[0]
+        subtype = override_subtype
+        rarity = override_rarity
+
+        if type == EncounterType.ESSENCE:
+            if not subtype:
+                choices = list(GameRules.ESSENCE_WEIGHTS.keys())
+                weights = list(GameRules.ESSENCE_WEIGHTS.values())
+                subtype = random.choices(choices, weights=weights, k=1)[0].value
             rarity = None
-            # Essence duration is standard
             duration_seconds = Config.CAPTURE_WINDOW_SECONDS + random.randint(0, 5)
-        else:
-            # 10% chance for Restless spirit, others balanced (22.5% each)
-            weights = [22.5, 22.5, 22.5, 22.5, 10]
-            subtype = override_subtype or random.choices(GameConstants.SPIRITS, weights=weights, k=1)[0]
-            # Rarity distribution affects duration slightly
-            if override_rarity:
-                rarity = override_rarity
-                duration_seconds = Config.CAPTURE_WINDOW_SECONDS
-            else:
-                rand = random.random()
-                if rand < 0.6: 
-                    rarity = GameConstants.COMMON
-                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS
-                elif rand < 0.85: 
-                    rarity = GameConstants.UNCOMMON
-                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS - 2
-                elif rand < 0.97: 
-                    rarity = GameConstants.RARE
-                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS - 5
-                else: 
-                    rarity = GameConstants.LEGENDARY
-                    duration_seconds = Config.CAPTURE_WINDOW_SECONDS - 8
+        else: # Spirit
+            if not subtype:
+                choices = list(GameRules.SPIRIT_WEIGHTS.keys())
+                weights = list(GameRules.SPIRIT_WEIGHTS.values())
+                subtype = random.choices(choices, weights=weights, k=1)[0].value
+            
+            if not rarity:
+                choices = list(GameRules.RARITY_WEIGHTS.keys())
+                weights = list(GameRules.RARITY_WEIGHTS.values())
+                rarity = random.choices(choices, weights=weights, k=1)[0]
+            
+            # Duration based on rarity
+            rarity_penalties = {
+                Rarity.COMMON: 0,
+                Rarity.UNCOMMON: 2,
+                Rarity.RARE: 5,
+                Rarity.LEGENDARY: 8
+            }
+            duration_seconds = Config.CAPTURE_WINDOW_SECONDS - rarity_penalties.get(rarity, 0)
 
         if has_arcane_anchor:
             duration_seconds += 15
@@ -88,13 +90,9 @@ class EncounterService:
             expires_at=spawn_time + timedelta(seconds=duration_seconds),
             blacklisted_user_id=blacklisted_user_id
         )
-        # Store if anchor was active for UI feedback
-        # (We can use a temporary attribute or just return it)
         encounter._temp_anchor_active = has_arcane_anchor
         
         session.add(encounter)
-        await session.commit()
-        await session.refresh(encounter)
         return encounter
 
     @staticmethod
@@ -109,25 +107,22 @@ class EncounterService:
 
     @staticmethod
     async def handle_soul_anchor(session: AsyncSession, encounter: Encounter):
-        """Checks for Restless Soul Anchor and extends encounter if triggered. Returns True if anchored."""
-        if encounter.type != "spirit":
-            return False
+        """Checks for Restless Soul Anchor and extends encounter if triggered. Does NOT commit."""
+        if encounter.type != EncounterType.SPIRIT:
+            return None
             
-        from bot.models.familiar import Familiar
         now = datetime.now()
-        
         stmt = select(Familiar).where(
             Familiar.active_until > now, 
-            Familiar.spirit_type == GameConstants.RESTLESS
+            Familiar.spirit_type == SpiritType.RESTLESS
         ).limit(1)
         res = await session.execute(stmt)
         anchor_fam = res.scalar_one_or_none()
         
         if anchor_fam:
-            chances = {"common": 0.2, "uncommon": 0.3, "rare": 0.4, "legendary": 0.5}
+            chances = {Rarity.COMMON: 0.2, Rarity.UNCOMMON: 0.3, Rarity.RARE: 0.4, Rarity.LEGENDARY: 0.5}
             if random.random() < chances.get(anchor_fam.rarity, 0.2):
                 encounter.expires_at = now + timedelta(seconds=30)
-                await session.commit()
                 return anchor_fam
         return None
 
@@ -138,6 +133,7 @@ class EncounterService:
         user_id: int,
         keyword: str
     ):
+        """Processes capture attempt. Does NOT commit."""
         # 1. Fetch active encounter
         stmt = select(Encounter).where(
             Encounter.channel_id == channel_id,
@@ -149,14 +145,13 @@ class EncounterService:
         if not encounter:
             return None, "No active encounter in this channel."
         
-        # Check blacklist (for released surges)
         if encounter.blacklisted_user_id and user_id == encounter.blacklisted_user_id:
             return None, "This energy is unstable for you. Let others bind it!"
         
         # 2. Validate keyword
-        expected = "bind" if encounter.type == "essence" else "bind spirit"
+        expected = "bind" if encounter.type == EncounterType.ESSENCE else "bind spirit"
         if keyword.lower().strip() != expected:
-            return None, None # Ignore invalid keywords silently or with feedback
+            return None, None
         
         # 3. Check anti-macro delay
         now = datetime.now()
@@ -166,7 +161,6 @@ class EncounterService:
         # 4. Check capture window
         if now > encounter.expires_at:
             encounter.is_active = False
-            await session.commit()
             return None, "The essence has faded..."
 
         # 5. Check if player already attempted
@@ -178,28 +172,28 @@ class EncounterService:
         if result.scalar_one_or_none():
             return None, "You already tried to bind this!"
 
-        # 6. Capture! (First one wins)
+        # 6. Capture!
         encounter.is_active = False
         encounter.captured_by = user_id
         
         # Add to inventory
-        if encounter.type == "essence":
-            await InventoryService.add_essence(session, user_id, encounter.subtype, 1)
+        if encounter.type == EncounterType.ESSENCE:
+            e_enum = EssenceType(encounter.subtype)
+            await InventoryService.add_essence(session, user_id, e_enum, 1)
             msg = f"Successfully bound the {encounter.subtype} essence!"
         else:
-            success, result = await InventoryService.add_spirit(session, user_id, encounter.subtype, encounter.rarity)
+            s_enum = SpiritType(encounter.subtype)
+            success, result = await InventoryService.add_spirit(session, user_id, s_enum, encounter.rarity)
             if not success:
                 return None, result
             
-            # Spirit success: tell them the cost
-            cost = GameConstants.COST_MAP[encounter.rarity]
+            cost = GameRules.RITUAL_COSTS[encounter.rarity]
             msg = (
-                f"Successfully bound the {encounter.rarity} {encounter.subtype} spirit! "
+                f"Successfully bound the {encounter.rarity.value} {encounter.subtype} spirit! "
                 f"You will need **{cost} matching essences** to create a familiar with this spirit."
             )
 
         participant = EncounterParticipant(encounter_id=encounter.id, user_id=user_id)
         session.add(participant)
-        await session.commit()
         
         return encounter, msg

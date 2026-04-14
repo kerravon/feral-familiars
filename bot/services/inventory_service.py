@@ -4,6 +4,7 @@ from bot.models.base import User
 from bot.models.essence import Essence
 from bot.models.familiar import Spirit, Familiar
 from bot.utils.config import Config
+from bot.domain.enums import EssenceType, SpiritType, Rarity
 from typing import List, Optional
 
 class InventoryService:
@@ -16,13 +17,11 @@ class InventoryService:
         if not user:
             user = User(id=user_id)
             session.add(user)
-            await session.commit()
-            await session.refresh(user)
+            # No commit here - let manager handle it
         return user
 
     @staticmethod
-    async def add_essence(session: AsyncSession, user_id: int, type: str, count: int = 1):
-        # Ensure user exists
+    async def add_essence(session: AsyncSession, user_id: int, type: EssenceType, count: int):
         await InventoryService.get_or_create_user(session, user_id)
         
         stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == type)
@@ -35,27 +34,10 @@ class InventoryService:
         else:
             essence.count = min(essence.count + count, Config.MAX_ESSENCES)
         
-        await session.commit()
+        # No commit here
 
     @staticmethod
-    async def add_spirit(session: AsyncSession, user_id: int, type: str, rarity: str):
-        await InventoryService.get_or_create_user(session, user_id)
-        
-        # Check spirit limit
-        stmt = select(Spirit).where(Spirit.user_id == user_id)
-        result = await session.execute(stmt)
-        spirits = result.scalars().all()
-        
-        if len(spirits) >= Config.MAX_SPIRITS:
-            return False, f"Spirit inventory full (max {Config.MAX_SPIRITS})."
-        
-        spirit = Spirit(user_id=user_id, type=type, rarity=rarity)
-        session.add(spirit)
-        await session.commit()
-        return True, spirit
-
-    @staticmethod
-    async def deduct_essence(session: AsyncSession, user_id: int, type: str, count: int) -> bool:
+    async def deduct_essence(session: AsyncSession, user_id: int, type: EssenceType, count: int) -> bool:
         """Deducts essence from a user's inventory. Returns True if successful, False if insufficient."""
         stmt = select(Essence).where(Essence.user_id == user_id, Essence.type == type)
         result = await session.execute(stmt)
@@ -68,8 +50,25 @@ class InventoryService:
         if essence.count == 0:
             await session.delete(essence)
             
-        await session.commit()
+        # No commit here
         return True
+
+    @staticmethod
+    async def add_spirit(session: AsyncSession, user_id: int, type: SpiritType, rarity: Rarity):
+        await InventoryService.get_or_create_user(session, user_id)
+        
+        # Check spirit limit
+        stmt = select(Spirit).where(Spirit.user_id == user_id)
+        result = await session.execute(stmt)
+        spirits = result.scalars().all()
+        
+        if len(spirits) >= Config.MAX_SPIRITS:
+            return False, f"Spirit inventory full (max {Config.MAX_SPIRITS})."
+        
+        spirit = Spirit(user_id=user_id, type=type, rarity=rarity)
+        session.add(spirit)
+        # No commit here
+        return True, spirit
 
     @staticmethod
     async def get_essences(session: AsyncSession, user_id: int) -> List[Essence]:
@@ -82,7 +81,7 @@ class InventoryService:
         stmt = select(Spirit).where(Spirit.user_id == user_id)
         result = await session.execute(stmt)
         return list(result.scalars().all())
-    
+
     @staticmethod
     async def get_familiars(session: AsyncSession, user_id: int) -> List[Familiar]:
         stmt = select(Familiar).where(Familiar.user_id == user_id)
@@ -90,12 +89,12 @@ class InventoryService:
         return list(result.scalars().all())
 
     @staticmethod
-    async def delete_spirit(session: AsyncSession, user_id: int, spirit_id: int):
+    async def delete_spirit(session: AsyncSession, user_id: int, spirit_id: int) -> bool:
         stmt = select(Spirit).where(Spirit.id == spirit_id, Spirit.user_id == user_id)
         result = await session.execute(stmt)
         spirit = result.scalar_one_or_none()
         if spirit:
             await session.delete(spirit)
-            await session.commit()
+            # No commit here
             return True
         return False

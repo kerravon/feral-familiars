@@ -1,3 +1,5 @@
+import math
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from bot.models.base import User
@@ -5,30 +7,28 @@ from bot.models.essence import Essence
 from bot.models.familiar import Spirit
 from bot.services.inventory_service import InventoryService
 from bot.services.guild_service import GuildService
-from bot.utils.constants import GameConstants
+from bot.domain.enums import EssenceType, Rarity
+from bot.domain.constants import GameRules
 from bot.utils.config import Config
-from datetime import datetime, timezone
-import math
 
 class BestowService:
     @staticmethod
     async def _check_and_reset_limits(session: AsyncSession, user: User):
         now = datetime.now(timezone.utc).replace(tzinfo=None)
-        # Check if last reset was on a different day
-        if user.last_gift_reset.date() < now.date():
+        if user.last_gift_reset.date() != now.date():
             user.daily_spirits_gifted = 0
             user.daily_essences_gifted = 0
             user.last_gift_reset = now
-            await session.commit()
+            # No commit here
 
     @staticmethod
     async def bestow_essence(
         session: AsyncSession, 
         sender_id: int, 
         receiver_id: int, 
-        essence_type: str, 
+        essence_type: EssenceType, 
         amount: int,
-        tax_payment_type: str,
+        tax_payment_type: EssenceType,
         bot = None,
         guild_id: int = 0,
         channel_id: int = 0
@@ -48,10 +48,10 @@ class BestowService:
         res = await session.execute(stmt)
         s_ess = res.scalar_one_or_none()
         if not s_ess or s_ess.count < amount:
-            return False, f"Insufficient {essence_type} essences."
+            return False, f"Insufficient {essence_type.value} essences."
 
         # 3. Calculate Tax (3% for sender, goes to Pot)
-        tax_amount = math.ceil(amount * 0.03)
+        tax_amount = math.ceil(amount * GameRules.SOCIAL_TAX_PERCENT)
         
         # Check Sender Inventory for tax
         stmt = select(Essence).where(Essence.user_id == sender_id, Essence.type == tax_payment_type)
@@ -62,11 +62,10 @@ class BestowService:
         total_needed = amount + tax_amount if tax_payment_type == essence_type else tax_amount
         
         if not s_tax_ess or s_tax_ess.count < total_needed:
-            return False, f"You lack enough {tax_payment_type} for the ritual fee ({tax_amount})."
+            return False, f"You lack enough {tax_payment_type.value} for the ritual fee ({tax_amount})."
 
         # 4. Execute Bestow
         s_ess.count -= amount
-        # Re-fetch or use the same object for tax if types match
         if tax_payment_type == essence_type:
             s_ess.count -= tax_amount
         else:
@@ -77,18 +76,10 @@ class BestowService:
             await GuildService.add_to_pot(session, guild_id, bot, channel_id, essence_amount=tax_amount)
         
         # Add to receiver
-        stmt = select(Essence).where(Essence.user_id == receiver_id, Essence.type == essence_type)
-        res = await session.execute(stmt)
-        r_ess = res.scalar_one_or_none()
-        if not r_ess:
-            r_ess = Essence(user_id=receiver_id, type=essence_type, count=min(amount, Config.MAX_ESSENCES))
-            session.add(r_ess)
-        else:
-            r_ess.count = min(r_ess.count + amount, Config.MAX_ESSENCES)
+        await InventoryService.add_essence(session, receiver_id, essence_type, amount)
             
         sender.daily_essences_gifted += amount
-        await session.commit()
-        return True, f"You bestowed {amount} {essence_type} essences to <@{receiver_id}>. You paid {tax_amount} {tax_payment_type} to the **Well of Souls**."
+        return True, f"You bestowed {amount} {essence_type.value} essences to <@{receiver_id}>. You paid {tax_amount} {tax_payment_type.value} to the **Well of Souls**."
 
     @staticmethod
     async def bestow_spirit(
@@ -96,7 +87,7 @@ class BestowService:
         sender_id: int, 
         receiver_id: int, 
         spirit_id: int,
-        tax_payment_type: str,
+        tax_payment_type: EssenceType,
         bot = None,
         guild_id: int = 0,
         channel_id: int = 0
@@ -124,20 +115,14 @@ class BestowService:
             return False, "Spirit not found in your inventory."
 
         # 3. Calculate Tax
-        transmute_tax = {
-            GameConstants.COMMON: 2,
-            GameConstants.UNCOMMON: 5,
-            GameConstants.RARE: 10,
-            GameConstants.LEGENDARY: 25
-        }
-        tax_amount = transmute_tax[spirit.rarity]
+        tax_amount = GameRules.SPIRIT_TAX_MAP[spirit.rarity]
 
         # Check Sender Tax
         stmt = select(Essence).where(Essence.user_id == sender_id, Essence.type == tax_payment_type)
         res = await session.execute(stmt)
         s_tax_ess = res.scalar_one_or_none()
         if not s_tax_ess or s_tax_ess.count < tax_amount:
-            return False, f"You lack {tax_amount} {tax_payment_type} for the ritual fee."
+            return False, f"You lack {tax_amount} {tax_payment_type.value} for the ritual fee."
 
         # 4. Execute Bestow
         spirit.user_id = receiver_id
@@ -148,5 +133,4 @@ class BestowService:
         if bot and guild_id and channel_id:
             await GuildService.add_to_pot(session, guild_id, bot, channel_id, essence_amount=tax_amount, spirit_amount=1)
         
-        await session.commit()
-        return True, f"You bestowed a {spirit.rarity} {spirit.type} spirit to <@{receiver_id}>. You paid {tax_amount} {tax_payment_type} to the **Well of Souls**."
+        return True, f"You bestowed a {spirit.rarity.value} {spirit.type.value} spirit to <@{receiver_id}>. You paid {tax_amount} {tax_payment_type.value} to the **Well of Souls**."

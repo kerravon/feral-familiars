@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import BigInteger, Boolean, String, DateTime
+from sqlalchemy import BigInteger, Boolean, String, DateTime, Enum
 from typing import Optional
 from datetime import datetime
 from bot.models.base import Base
+from bot.domain.enums import LureType, EssenceType
 
 class ChannelConfig(Base):
     __tablename__ = "channel_configs"
@@ -14,8 +15,14 @@ class ChannelConfig(Base):
     activity_score: Mapped[int] = mapped_column(default=0)
     pity_count: Mapped[int] = mapped_column(default=0)
     
-    active_lure_type: Mapped[Optional[str]] = mapped_column(String(20), nullable=True) # spirit, essence, pure
-    active_lure_subtype: Mapped[Optional[str]] = mapped_column(String(20), nullable=True) # Fire, etc.
+    active_lure_type: Mapped[Optional[LureType]] = mapped_column(
+        Enum(LureType, values_callable=lambda x: [e.value for e in x]), 
+        nullable=True
+    )
+    active_lure_subtype: Mapped[Optional[EssenceType]] = mapped_column(
+        Enum(EssenceType, values_callable=lambda x: [e.value for e in x]), 
+        nullable=True
+    )
     lure_expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
     def __repr__(self) -> str:

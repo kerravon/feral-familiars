@@ -46,7 +46,7 @@ The optimized images will be saved in the `optimized_assets/` folder.
 - **Size:** 512x512 pixels.
 - **Format:** WebP (preferred) or PNG.
 - **File Size:** Aim for **< 100 KB** per image.
-- **Hosting:** Upload the optimized `.webp` files to a reliable host (like ImgBB or GitHub) and update `bot/utils/constants.py`.
+- **Hosting:** Upload the optimized `.webp` files to a reliable host (like ImgBB or GitHub) and update `bot/domain/constants.py`.
 
 ## ✍️ Familiar Prompter Tool
 We have provided a tool to help generate consistent AI image prompts for every combination of Spirit, Rarity, and Essence.

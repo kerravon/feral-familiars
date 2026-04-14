@@ -1,16 +1,23 @@
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy import BigInteger, ForeignKey, String, DateTime, func
+from sqlalchemy import BigInteger, ForeignKey, String, DateTime, func, Enum
 from datetime import datetime
 from typing import Optional
 from bot.models.base import Base
+from bot.domain.enums import SpiritType, EssenceType, Rarity, ResonanceMode
 
 class Spirit(Base):
     __tablename__ = "spirits"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
-    type: Mapped[str] = mapped_column(String(20))  # Feline, Canine, Winged, Goblin
-    rarity: Mapped[str] = mapped_column(String(20))  # common, uncommon, rare, legendary
+    type: Mapped[SpiritType] = mapped_column(
+        Enum(SpiritType, values_callable=lambda x: [e.value for e in x]), 
+        nullable=False
+    )
+    rarity: Mapped[Rarity] = mapped_column(
+        Enum(Rarity, values_callable=lambda x: [e.value for e in x]), 
+        nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     def __repr__(self) -> str:
@@ -21,9 +28,18 @@ class Familiar(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id"), index=True)
-    spirit_type: Mapped[str] = mapped_column(String(20))
-    essence_type: Mapped[str] = mapped_column(String(20))
-    rarity: Mapped[str] = mapped_column(String(20))
+    spirit_type: Mapped[SpiritType] = mapped_column(
+        Enum(SpiritType, values_callable=lambda x: [e.value for e in x]), 
+        nullable=False
+    )
+    essence_type: Mapped[EssenceType] = mapped_column(
+        Enum(EssenceType, values_callable=lambda x: [e.value for e in x]), 
+        nullable=False
+    )
+    rarity: Mapped[Rarity] = mapped_column(
+        Enum(Rarity, values_callable=lambda x: [e.value for e in x]), 
+        nullable=False
+    )
     name: Mapped[str] = mapped_column(String(50))
     is_active: Mapped[bool] = mapped_column(default=False)
     
@@ -38,8 +54,14 @@ class Familiar(Base):
     growth_bonus: Mapped[float] = mapped_column(default=0.0)
     
     # Resonance Customization
-    resonance_mode: Mapped[str] = mapped_column(String(20), default="echo") # echo, pulse, attract
-    attract_element: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    resonance_mode: Mapped[ResonanceMode] = mapped_column(
+        Enum(ResonanceMode, values_callable=lambda x: [e.value for e in x]), 
+        default=ResonanceMode.ECHO
+    )
+    attract_element: Mapped[Optional[EssenceType]] = mapped_column(
+        Enum(EssenceType, values_callable=lambda x: [e.value for e in x]), 
+        nullable=True
+    )
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 

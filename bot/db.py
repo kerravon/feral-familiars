@@ -1,10 +1,13 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from bot.models.base import Base
+from bot.utils.config import Config
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://arcane_user:arcane_pass@db:5432/arcane_db")
+# Database URL from Config
+DATABASE_URL = Config.DATABASE_URL
 
 engine = create_async_engine(DATABASE_URL, echo=False)
+
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
@@ -12,9 +15,13 @@ AsyncSessionLocal = async_sessionmaker(
 )
 
 async def init_db():
-    # In a real app, we'd use Alembic. For MVP, we can create all tables.
+    """
+    Initializes the database. 
+    Note: Ongoing schema changes should be handled via Alembic migrations.
+    """
     async with engine.begin() as conn:
-        # await conn.run_sync(Base.metadata.drop_all)
+        # We still use create_all for initial setup in new environments
+        # but Alembic will manage it thereafter.
         await conn.run_sync(Base.metadata.create_all)
 
 async def get_session() -> AsyncSession:

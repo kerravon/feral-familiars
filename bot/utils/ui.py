@@ -3,7 +3,8 @@ from discord import ui
 from bot.services.transmute_service import TransmuteService
 from bot.services.inventory_service import InventoryService
 from bot.db import AsyncSessionLocal
-from bot.utils.constants import GameConstants
+from bot.domain.enums import EssenceType, SpiritType, Rarity, ResonanceMode
+from bot.domain.constants import GameRules
 import math
 
 class EssenceOfferModal(ui.Modal, title="Offer Essences"):
@@ -16,9 +17,11 @@ class EssenceOfferModal(ui.Modal, title="Offer Essences"):
         self.view = view
 
     async def on_submit(self, interaction: discord.Interaction):
-        etype = self.essence_type.value.title()
-        if etype not in GameConstants.ESSENCES:
-            await interaction.response.send_message(f"Invalid essence type: {etype}", ephemeral=True)
+        etype_str = self.essence_type.value.title()
+        try:
+            etype = EssenceType(etype_str)
+        except ValueError:
+            await interaction.response.send_message(f"Invalid essence type: {etype_str}", ephemeral=True)
             return
         
         try:
@@ -29,14 +32,14 @@ class EssenceOfferModal(ui.Modal, title="Offer Essences"):
             return
 
         async with AsyncSessionLocal() as session:
-            # Check if user has enough
             essences = await InventoryService.get_essences(session, interaction.user.id)
             user_ess = next((e for e in essences if e.type == etype), None)
             if not user_ess or user_ess.count < amt:
-                await interaction.response.send_message(f"You don't have {amt} {etype} essences.", ephemeral=True)
+                await interaction.response.send_message(f"You don't have {amt} {etype.value} essences.", ephemeral=True)
                 return
 
-            await TransmuteService.add_offer(session, self.trade_id, interaction.user.id, "essence", etype, amount=amt)
+            await TransmuteService.add_offer(session, self.trade_id, interaction.user.id, "essence", etype.value, amount=amt)
+            await session.commit()
         
         await self.view.update_message(interaction)
 
@@ -56,27 +59,26 @@ class SpiritOfferModal(ui.Modal, title="Offer a Spirit"):
             return
 
         async with AsyncSessionLocal() as session:
-            # Verify spirit ownership
             spirits = await InventoryService.get_spirits(session, interaction.user.id)
             spirit = next((s for s in spirits if s.id == sid), None)
             if not spirit:
                 await interaction.response.send_message("Spirit not found in your inventory.", ephemeral=True)
                 return
 
-            await TransmuteService.add_offer(session, self.trade_id, interaction.user.id, "spirit", spirit.type, rarity=spirit.rarity, spirit_id=sid)
+            await TransmuteService.add_offer(session, self.trade_id, interaction.user.id, "spirit", spirit.type.value, rarity=spirit.rarity, spirit_id=sid)
+            await session.commit()
         
         await self.view.update_message(interaction)
 
 class TransmuteView(ui.View):
     def __init__(self, trade_id, initiator_id, receiver_id, bot=None):
-        super().__init__(timeout=300) # 5 minute timeout
+        super().__init__(timeout=300)
         self.trade_id = trade_id
         self.initiator_id = initiator_id
         self.receiver_id = receiver_id
         self.bot = bot
         self.initiator_accepted = False
         self.receiver_accepted = False
-        # Default tax payment to Arcane, players can't change in MVP yet
         self.tax_types = {initiator_id: "Arcane", receiver_id: "Arcane"}
 
     async def update_message(self, interaction: discord.Interaction):
@@ -88,7 +90,6 @@ class TransmuteView(ui.View):
             res = await session.execute(stmt)
             offers = res.scalars().all()
             
-            # Re-fetch acceptance status
             stmt = select(Trade).where(Trade.id == self.trade_id)
             res = await session.execute(stmt)
             trade = res.scalar_one()
@@ -155,15 +156,16 @@ class TransmuteView(ui.View):
             await session.commit()
 
             if self.initiator_accepted and self.receiver_accepted:
-                # Final Execution
                 success, msg = await TransmuteService.execute_trade(
                     session, self.trade_id, self.tax_types, 
                     bot=self.bot, guild_id=interaction.guild_id, channel_id=interaction.channel_id
                 )
                 if success:
+                    await session.commit()
                     self.stop()
                     await interaction.response.edit_message(content=f"✅ **Ritual Complete!** {msg}", view=None)
                 else:
+                    await session.rollback()
                     await interaction.response.send_message(f"❌ **Ritual Failed:** {msg}", ephemeral=True)
             else:
                 await self.update_message(interaction)
@@ -179,12 +181,12 @@ class TransmuteView(ui.View):
 class FamiliarModeSelect(ui.Select):
     def __init__(self, familiar):
         options = [
-            discord.SelectOption(label="ECHO", value="echo", description="Double captured element (Lv. 1)", emoji="🔁")
+            discord.SelectOption(label="ECHO", value=ResonanceMode.ECHO.value, description="Double matching element (Lv. 1)", emoji="🔁")
         ]
-        if familiar.level >= 5:
-            options.append(discord.SelectOption(label="PULSE", value="pulse", description="Random different element (Lv. 5)", emoji="🔄"))
-        if familiar.level >= 8:
-            options.append(discord.SelectOption(label="ATTRACT", value="attract", description="Targeted element (Lv. 8)", emoji="🎯"))
+        if familiar.level >= GameRules.UNLOCK_PULSE_LEVEL:
+            options.append(discord.SelectOption(label="PULSE", value=ResonanceMode.PULSE.value, description=f"Random element (Lv. {GameRules.UNLOCK_PULSE_LEVEL})", emoji="🔄"))
+        if familiar.level >= GameRules.UNLOCK_ATTRACT_LEVEL:
+            options.append(discord.SelectOption(label="ATTRACT", value=ResonanceMode.ATTRACT.value, description=f"Targeted element (Lv. {GameRules.UNLOCK_ATTRACT_LEVEL})", emoji="🎯"))
             
         super().__init__(placeholder="Choose Resonance Mode...", min_values=1, max_values=1, options=options)
         self.familiar_id = familiar.id
@@ -192,9 +194,11 @@ class FamiliarModeSelect(ui.Select):
     async def callback(self, interaction: discord.Interaction):
         from bot.services.passive_service import PassiveService
         async with AsyncSessionLocal() as session:
-            success, result = await PassiveService.set_resonance_mode(session, interaction.user.id, self.familiar_id, self.values[0])
+            mode = ResonanceMode(self.values[0])
+            success, result = await PassiveService.set_resonance_mode(session, interaction.user.id, self.familiar_id, mode)
             if success:
-                await interaction.response.send_message(f"✅ Resonance mode set to **{self.values[0].upper()}**.", ephemeral=True)
+                await session.commit()
+                await interaction.response.send_message(f"✅ Resonance mode set to **{mode.value.upper()}**.", ephemeral=True)
             else:
                 await interaction.response.send_message(f"❌ {result}", ephemeral=True)
 
@@ -216,6 +220,7 @@ class FamiliarView(ui.View):
             success, result = await PassiveService.activate_passive(session, self.user_id, self.familiar_id)
             
             if success:
+                await session.commit()
                 button.disabled = True
                 button.label = "Resonating..."
                 await interaction.response.edit_message(view=self)
@@ -257,19 +262,19 @@ class HelpSelect(ui.Select):
             embed.title = "🧪 Ritual of Creation"
             embed.description = "Combine 1 Spirit with matching Essences to create a Familiar."
             embed.add_field(name="Costs", value="Common: 10 | Uncommon: 20\nRare: 40 | Legendary: 80")
-            embed.add_field(name="Restless", value="Requires +5 to +25 extra Arcane Essence.")
+            embed.add_field(name="Restless", value="Requires extra Arcane Essence.")
             
         elif category == "leveling":
             embed.title = "📈 Progression & Leveling"
             embed.description = "Raise your familiar up to Level 10 to boost its power."
             embed.add_field(name="XP Sources", value="Binding items while summoned\nFeeding essences via `/feed`")
-            embed.add_field(name="Unlocks", value="Lv. 5: PULSE Mode\nLv. 8: ATTRACT Mode")
+            embed.add_field(name="Unlocks", value=f"Lv. {GameRules.UNLOCK_PULSE_LEVEL}: PULSE Mode\nLv. {GameRules.UNLOCK_ATTRACT_LEVEL}: ATTRACT Mode")
             
         elif category == "well":
             embed.title = "🤝 The Well of Souls"
             embed.description = " Ritual fees are gathered into a community pot."
-            embed.add_field(name="Taxes", value="3% fee on Gifting and Trading.")
-            embed.add_field(name="Prismatic Surge", value="When the Well overflows, 8 items spawn for the whole server!")
+            embed.add_field(name="Taxes", value=f"{GameRules.SOCIAL_TAX_PERCENT*100:.0f}% fee on Gifting and Trading.")
+            embed.add_field(name="Prismatic Surge", value=f"When the Well overflows, {GameRules.PRISMATIC_SURGE_COUNT} items spawn for the whole server!")
 
         await interaction.response.edit_message(embed=embed, view=self.view)
 

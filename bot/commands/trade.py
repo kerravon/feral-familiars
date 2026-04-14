@@ -5,24 +5,15 @@ from typing import Optional
 from bot.db import AsyncSessionLocal
 from bot.services.transmute_service import TransmuteService
 from bot.services.bestow_service import BestowService
-from bot.services.inventory_service import InventoryService
 from bot.utils.ui import TransmuteView
-from bot.utils.constants import GameConstants
+from bot.domain.enums import EssenceType
 
 class TradeCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def spirit_autocomplete(self, interaction: discord.Interaction, current: str):
-        async with AsyncSessionLocal() as session:
-            spirits = await InventoryService.get_spirits(session, interaction.user.id)
-            choices = [
-                app_commands.Choice(name=f"{s.rarity.title()} {s.type} (ID: {s.id})", value=s.id)
-                for s in spirits if current.lower() in f"{s.rarity} {s.type}".lower()
-            ]
-            return choices[:25]
-
-    @app_commands.command(name="transmute", description="Start a ritual of transmutation (trade) with another player (5% Ritual Fee).")
+    @app_commands.command(name="transmute", description="Initiate a Ritual of Transmutation (Trade) with another player.")
+    @app_commands.describe(user="The player you want to trade with")
     async def transmute(self, interaction: discord.Interaction, user: discord.User):
         if user.id == interaction.user.id:
             await interaction.response.send_message("You cannot transmute with yourself!", ephemeral=True)
@@ -33,6 +24,7 @@ class TradeCog(commands.Cog):
 
         async with AsyncSessionLocal() as session:
             trade = await TransmuteService.create_trade(session, interaction.user.id, user.id)
+            await session.commit()
             view = TransmuteView(trade.id, interaction.user.id, user.id, bot=self.bot)
             
             embed = discord.Embed(
@@ -40,8 +32,6 @@ class TradeCog(commands.Cog):
                 description=f"<@{interaction.user.id}> has initiated a ritual with <@{user.id}>.",
                 color=discord.Color.purple()
             )
-            embed.add_field(name=f"{interaction.user.name}'s Offer", value="Empty\n*Fee: 0 essences*", inline=True)
-            embed.add_field(name=f"{user.name}'s Offer", value="Empty\n*Fee: 0 essences*", inline=True)
             embed.set_footer(text="Click 'Offer' to add items. Both must 'Confirm' to complete.")
 
             await interaction.response.send_message(
@@ -50,43 +40,48 @@ class TradeCog(commands.Cog):
                 view=view
             )
 
-    @app_commands.command(name="bestow", description="Gift essences or spirits to another player (YOU pay the Ritual Fee).")
-    @app_commands.autocomplete(spirit_id=spirit_autocomplete)
+    @app_commands.command(name="bestow", description="Bestow (Gift) essences or a spirit to another player.")
     @app_commands.describe(
-        user="The player you are gifting to",
+        user="The player to receive the gift",
+        tax_payment="Essence type to use for the ritual fee",
         essence_type="Type of essence to gift (Optional)",
-        amount="Amount of essences to gift (Optional)",
-        spirit_id="ID of the spirit to gift (Optional)",
-        tax_payment="Essence YOU pay (Fee: 2% for essences | 1-12 for spirits based on rarity)"
+        amount="Amount of essence to gift (Optional)",
+        spirit_id="ID of the spirit to gift (Optional)"
     )
     async def bestow(
-        self,
+        self, 
         interaction: discord.Interaction, 
         user: discord.User, 
         tax_payment: str,
         essence_type: Optional[str] = None, 
-        amount: Optional[int] = None,
+        amount: Optional[int] = None, 
         spirit_id: Optional[int] = None
     ):
         if user.id == interaction.user.id:
-            await interaction.response.send_message("You cannot bestow gifts to yourself!", ephemeral=True)
+            await interaction.response.send_message("You cannot bestow to yourself!", ephemeral=True)
             return
-
-        tax_payment = tax_payment.title()
-        if tax_payment not in GameConstants.ESSENCES:
-            await interaction.response.send_message(f"Invalid tax payment type. Choose: {', '.join(GameConstants.ESSENCES)}", ephemeral=True)
+        
+        try:
+            tax_enum = EssenceType(tax_payment.title())
+        except ValueError:
+            await interaction.response.send_message("Invalid tax payment element.", ephemeral=True)
             return
 
         async with AsyncSessionLocal() as session:
             if essence_type and amount:
-                essence_type = essence_type.title()
+                try:
+                    e_type = EssenceType(essence_type.title())
+                except ValueError:
+                    await interaction.response.send_message("Invalid essence type.", ephemeral=True)
+                    return
+
                 success, result = await BestowService.bestow_essence(
-                    session, interaction.user.id, user.id, essence_type, amount, tax_payment,
+                    session, interaction.user.id, user.id, e_type, amount, tax_enum,
                     bot=self.bot, guild_id=interaction.guild_id, channel_id=interaction.channel_id
                 )
             elif spirit_id:
                 success, result = await BestowService.bestow_spirit(
-                    session, interaction.user.id, user.id, spirit_id, tax_payment,
+                    session, interaction.user.id, user.id, spirit_id, tax_enum,
                     bot=self.bot, guild_id=interaction.guild_id, channel_id=interaction.channel_id
                 )
             else:
@@ -94,8 +89,10 @@ class TradeCog(commands.Cog):
                 return
 
             if success:
+                await session.commit()
                 await interaction.response.send_message(f"🎁 **Gift Bestowed!** {result}")
             else:
+                await session.rollback()
                 await interaction.response.send_message(f"❌ **Bestowal Failed:** {result}", ephemeral=True)
 
 async def setup(bot):

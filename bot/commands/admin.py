@@ -7,7 +7,7 @@ from bot.services.config_service import ConfigService
 from bot.services.encounter_service import EncounterService
 from bot.services.inventory_service import InventoryService
 from bot.models.familiar import Familiar
-from bot.utils.constants import GameConstants
+from bot.domain.constants import GameRules as GameConstants, AssetUrls
 
 logger = logging.getLogger("FeralFamiliars")
 

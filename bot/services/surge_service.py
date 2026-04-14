@@ -5,65 +5,50 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.db import AsyncSessionLocal
 from bot.services.encounter_service import EncounterService
-from bot.utils.constants import GameConstants
+from bot.ui.embeds import EmbedFactory
+from bot.domain.enums import EncounterType, EssenceType, SpiritType, Rarity
+from bot.domain.constants import GameRules, AssetUrls
 
 logger = logging.getLogger("FeralFamiliars")
 
 class SurgeService:
     @staticmethod
-    async def trigger_spirit_surge(bot, channel_id, guild_id, releaser_id, spirit_type, rarity):
-        """
-        30% chance to respawn the spirit.
-        70% chance to splinter into 3 essences.
-        Spawns occur in series with a delay.
-        """
-        await asyncio.sleep(2) # Brief pause after the release message
-        
-        chance = random.random()
-        if chance < 0.30:
-            # Respawn spirit
-            await SurgeService._spawn_with_announcement(
-                bot, channel_id, guild_id, "spirit", spirit_type, rarity, releaser_id,
-                "✨ The released spirit lingers! Bind it quickly!"
-            )
-        else:
-            # Splinter into 3 essences
-            for i in range(3):
-                await SurgeService._spawn_with_announcement(
-                    bot, channel_id, guild_id, "essence", spirit_type, None, releaser_id,
-                    f"💎 A fragment of the spirit has splintered! ({i+1}/3)"
-                )
-                await asyncio.sleep(5) # Delay between splinter spawns
-
-    @staticmethod
-    async def trigger_familiar_surge(bot, channel_id, guild_id, releaser_id, spirit_type, rarity, essence_type):
-        """
-        Guaranteed: Original Spirit + 5 random Essences.
-        """
+    async def trigger_spirit_surge(bot, channel_id, guild_id, releaser_id, subtype, rarity):
+        """Spawns 3 random essences after spirit release."""
         await asyncio.sleep(2)
         
-        # 1. The Spirit
+        for i in range(3):
+            etype = random.choice(list(EssenceType))
+            await SurgeService._spawn_with_announcement(
+                bot, channel_id, guild_id, EncounterType.ESSENCE, etype.value, None, releaser_id,
+                f"✨ Resonance Surge: An essence has materialized! ({i+1}/3)"
+            )
+            await asyncio.sleep(5)
+
+    @staticmethod
+    async def trigger_familiar_surge(bot, channel_id, guild_id, releaser_id, stype, srarity, etype):
+        """Spawns the original spirit + 5 random essences."""
+        await asyncio.sleep(2)
+        
+        # 1. Spawn the spirit
         await SurgeService._spawn_with_announcement(
-            bot, channel_id, guild_id, "spirit", spirit_type, rarity, releaser_id,
-            "🕯️ The familiar's soul has returned to the wild! Bind it!"
+            bot, channel_id, guild_id, EncounterType.SPIRIT, stype.value, srarity, releaser_id,
+            "🕊️ Prismatic Surge: The released spirit lingers for a moment!"
         )
         await asyncio.sleep(6)
-        
-        # 2. 5 random essences
+
+        # 2. Spawn 5 random essences
         for i in range(5):
-            etype = random.choice(GameConstants.ESSENCES)
+            rand_etype = random.choice(list(EssenceType))
             await SurgeService._spawn_with_announcement(
-                bot, channel_id, guild_id, "essence", etype, None, releaser_id,
+                bot, channel_id, guild_id, EncounterType.ESSENCE, rand_etype.value, None, releaser_id,
                 f"✨ Prismatic Burst: An essence has materialized! ({i+1}/5)"
             )
-            await asyncio.sleep(4)
+            await asyncio.sleep(5)
 
     @staticmethod
     async def trigger_well_of_souls_surge(bot, channel_id, guild_id):
-        """
-        Triggered when the Guild Pot overflows.
-        Spawns a massive burst of items for everyone.
-        """
+        """Spawns 8 items when the pot overflows."""
         channel = bot.get_channel(channel_id)
         if not channel:
             channel = await bot.fetch_channel(channel_id)
@@ -71,20 +56,19 @@ class SurgeService:
         await channel.send("🌌 **THE WELL OF SOULS OVERFLOWS!** 🌌\nA massive surge of energy is returning to the world! Get ready!")
         await asyncio.sleep(5)
         
-        # Spawn 8 items in rapid succession (Mixture of essence and spirits)
-        for i in range(8):
+        for i in range(GameRules.PRISMATIC_SURGE_COUNT):
             is_spirit = random.random() < 0.3
-            etype = random.choice(GameConstants.ESSENCES)
-            stype = random.choice(GameConstants.SPIRITS)
-            rarity = random.choice(GameConstants.RARITIES) if is_spirit else None
+            etype = random.choice(list(EssenceType))
+            stype = random.choice(list(SpiritType))
+            rarity = random.choice(list(Rarity)) if is_spirit else None
             
             await SurgeService._spawn_with_announcement(
                 bot, channel_id, guild_id, 
-                "spirit" if is_spirit else "essence", 
-                stype if is_spirit else etype, 
+                EncounterType.SPIRIT if is_spirit else EncounterType.ESSENCE, 
+                stype.value if is_spirit else etype.value, 
                 rarity, 
-                None, # No blacklist
-                f"🌟 **SURGE EVENT**: Item {i+1}/8 has manifested!"
+                None,
+                f"🌟 **SURGE EVENT**: Item {i+1}/{GameRules.PRISMATIC_SURGE_COUNT} has manifested!"
             )
             await asyncio.sleep(4)
         
@@ -101,24 +85,15 @@ class SurgeService:
             )
             
             if encounter:
+                # COMMIT the spawn here because it's a standalone background task
+                await session.commit()
+                
                 channel = bot.get_channel(channel_id)
-                if not channel:
-                    channel = await bot.fetch_channel(channel_id)
-                
-                embed = discord.Embed(
-                    title="🌌 RESONANCE SURGE!",
-                    description=f"{announcement}\n\nType `bind` to capture!" if type == "essence" else f"{announcement}\n\nType `bind spirit` to capture!",
-                    color=discord.Color.gold()
-                )
-                
-                if type == "essence":
-                    embed.set_image(url=GameConstants.ESSENCE_IMAGES.get(subtype))
-                else:
-                    embed.set_image(url=GameConstants.SPIRIT_IMAGES.get(subtype))
-                if rarity:
-                    embed.add_field(name="Rarity", value=rarity.upper())
-                
-                embed.set_footer(text="Energy released by a former master. Releaser cannot bind.")
+                if not channel: channel = await bot.fetch_channel(channel_id)
+
+                # Use Factory for consistent visuals
+                embed = EmbedFactory.create_encounter_embed(encounter, is_lured=True) # Surge items look "lured" (gold color)
+                embed.title = announcement # Override title with surge-specific announcement
                 
                 msg = await channel.send(embed=embed)
                 encounter.message_id = msg.id

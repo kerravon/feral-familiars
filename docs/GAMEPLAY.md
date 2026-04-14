@@ -13,7 +13,7 @@ The probability of a spawn is influenced by channel activity and a pity system:
 ### Types of Encounters
 - **Essences (80%):** 
   - **Base Elements:** Earth, Wind, Fire, Water (Equal spawn weight).
-  - **Special:** Arcane (Rare - ~50% spawn rate compared to base elements).
+  - **Special:** Arcane (Rare - ~12% spawn weight).
 - **Spirits (20%):** 
   - **Base Spirits:** Feline, Canine, Winged, Goblin (Standard spawn rate).
   - **Special:** Restless (Rare - ~10% spawn weight).
@@ -27,17 +27,14 @@ Rarity determines the creation cost and the **success chance of Passive Effects*
 
 ## 🪢 Capture (Binding)
 - **Keyword:** `bind` for essences, `bind spirit` for spirits.
-- **Limits:** 
-  - **Essences:** Max **500** per type (Configurable via `MAX_ESSENCES`).
-  - **Spirits:** Max **5** in inventory (Configurable via `MAX_SPIRITS`).
 - **Rules:**
   - **First Response:** The first player to type the keyword correctly wins the encounter.
-  - **Anti-Macro:** A delay is enforced (default 1s, configurable via `ANTI_MACRO_DELAY_SECONDS`) after a spawn before capture is possible.
-  - **Expiration:** Encounters fade after a few seconds (default 45s, configurable via `CAPTURE_WINDOW_SECONDS`).
+  - **Anti-Macro:** A delay is enforced (default 1s) after a spawn before capture is possible.
+  - **Expiration:** Encounters fade after a few seconds (default 45s).
 
 ## 🟢 Active Familiars
 Equipping a familiar using `/summon` makes it your active companion. 
-- **Stable Limit:** You can hold a maximum of **3** familiars (Default, configurable via `DEFAULT_STABLE_LIMIT`).
+- **Stable Limit:** You can hold a maximum of **3** familiars by default.
 
 ## 📈 Familiar Leveling
 Familiars grow in power as you interact with them. A higher level increases the success rate of their passive effects and unlocks new resonance modes.
@@ -62,31 +59,31 @@ Familiars grow in power as you interact with them. A higher level increases the 
 | **9** | Permanent +0.5% to +2.0% trigger chance bonus. |
 | **10** | **MAX LEVEL** (Final growth roll) |
 
-- **Passive Bonuses:**
-  - **Base Familiars:** % Chance to gain an extra essence based on the **Mode**.
-  - **Arcane Familiars:**
-    - Higher % Chance (+10% flat) to trigger passives.
-    - **Temporal Anchor:** If any player in the guild has an active Arcane familiar, all spawns in that server stay active for an additional **+15 seconds**.
-  - **Restless Familiars:**
-    - **Soul Anchor:** If a Restless familiar's resonance is active in the server, any spirit that is about to fade has a **20-50% chance** (by rarity) to be anchored, staying for an additional **+30 seconds**.
-- **Resonance (Activation):** Passives are manually enabled using **`/familiar [name]`**:
+### Passive Resonance
+- **Activation:** Passives are manually enabled using **`/familiar [name]`**:
   - Click **`Ignite Resonance`** to enable passives for **4 hours**.
   - **Global Limit:** You can ignite resonance **2 times per day** across your entire stable.
-  - Can be ignited **once per day** per specific familiar.
   - **Unlimited Triggers:** No limit on how many times the passive can trigger during the 4-hour window.
+- **Unique Passives:**
+  - **Arcane Familiars:** +10% flat bonus to trigger passives. **Temporal Anchor:** If ignited, all spawns in the server stay active for an additional **+15 seconds**.
+  - **Restless Familiars:** **Soul Anchor:** If ignited, expiring spirits have a **20-50% chance** to stay for an additional **+30 seconds**.
 - **Resonance Modes:**
-  - **ECHO (Default):** The familiar doubles the essence type you just captured, provided it **matches the familiar's own element** (e.g., a Fire familiar only doubles Fire captures). **Arcane Familiars** are the exception—their ECHO power doubles *any* element.
-  - **PULSE:** The familiar transmutes the energy into a **random different** element.
+  - **ECHO (Level 1):** Doubles captures that **match the familiar's element**. (Arcane doubles all elements).
+  - **PULSE (Level 5):** Transmutes the energy into a **random different** element.
+  - **ATTRACT (Level 8):** Targets a **specific element** of your choice.
+
+## 🤝 Social & The Well
+- **The Well of Souls:** All ritual fees are collected into a community pot.
+- **Overflow Surge:** When the Well hits its threshold (1,000 essences), it triggers 8 rapid spawns for everyone.
+- **Commands:**
+  - `/vault`: View current Well progress.
+  - `/donate`: Manually contribute essences to the Well.
+  - `/bestow`: Gift items to other players (3% tax to the Well).
+  - `/transmute`: Trade items with other players (3% tax to the Well).
 
 ## 🍂 Releasing
-If your inventory or stable is full, you can release items to make room. Releasing triggers a **Resonance Surge**—a series of immediate spawns in the current channel.
-- **Rules:** The player who releases the item **cannot** capture the resulting spawns.
-- **Spirits:** 
-  - 30% chance to respawn the spirit.
-  - 70% chance to splinter into **3 matching Essences**, spawned 5 seconds apart.
-- **Familiars:** 
-  - Triggers a **Prismatic Burst**: Spawns the original Spirit **AND** **5 random Essences**, spawned 4-6 seconds apart.
+If your inventory is full, you can release items to trigger a **Resonance Surge** (3-5 immediate spawns). The releaser is blacklisted from these spawns.
 
-**Commands:**
-- `/release-spirit [name]`: Permanently removes a spirit from your inventory.
-- `/release-familiar [name]`: Permanently removes a familiar from your stable.
+## 📜 Guidance
+- **/help**: Use this command at any time for an interactive guide to all game systems.
+- **Onboarding:** Look for helpful tips in chat after your first capture or ritual success!

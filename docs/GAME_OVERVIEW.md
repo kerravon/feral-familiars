@@ -8,99 +8,67 @@ Feral Familiars is a social creature-collection and resource-management game pla
 
 ### 1. The Spawning System (The Pulse)
 The game operates on a rhythmic "Pulse" that checks for spontaneous encounters.
-*   **Natural Spawns:** Every **2 minutes**, there is a **15% chance** (default) for an item to appear in an active channel.
-*   **The Wait:** Items remain active for **~45 seconds** before fading.
-*   **Temporal Anchor:** If any player has an active **Arcane Familiar** summoned, the timer increases to **60 seconds** for everyone in the server.
-*   **Visual Feedback:** When an item fades, it turns into a dark grey "Faded" placeholder. When bound, it shows a "Bound" version of the artwork.
+*   **Dynamic Spawns:** Spawns occur periodically (Configurable via `SPAWN_INTERVAL_SECONDS`).
+*   **The Heat System:** Chat activity increases the spawn chance by **+0.5% per message** (Max +20%).
+*   **Pity System:** Every failed spawn check increases the next check's chance by **+2%**.
+*   **Temporal Anchor:** If an **Arcane Familiar** is resonating, spawns stay active for an additional **+15 seconds**.
 
 ### 2. The Capture System (Binding)
-Unlike most bots, Feral Familiars requires active attention via keywords.
-*   **Essences:** Type `bind` to capture.
-*   **Spirits:** Type `bind spirit` to capture.
-*   **Anti-Macro:** A **1-second delay** is enforced. Attempting to bind instantly after a spawn will fail.
+Capturing items requires active attention and quick typing.
+*   **Keywords:** Type `bind` for essences or `bind spirit` for spirits.
 *   **Competitive:** Only the **first** person to correctly type the keyword wins the item.
+*   **Anti-Macro:** A **1-second delay** is enforced to prevent automated captures.
 
 ---
 
 ## 🎒 Items & Ingredients
 
 ### Essences (80% Spawn Rate)
-Essences are the "fuel" for rituals and the "currency" for social taxes.
-*   **Base Elements (22% weight each):** Earth, Wind, Fire, Water.
-*   **Special (12% weight):** Arcane (Used for advanced rituals and paying taxes).
+Essences are the fuel for rituals and the currency for social taxes.
+*   **Elements:** Earth, Wind, Fire, Water, and the rare **Arcane**.
+*   **Inventory Cap:** 500 per type (Configurable).
 
 ### Spirits (20% Spawn Rate)
-Spirits are the "core" of a familiar. They possess a Type and a Rarity.
-*   **Spirit Types:** Feline, Canine, Winged, Goblin, and **Restless** (Rare).
-*   **Rarity Weights:**
-    *   **Common:** 60%
-    *   **Uncommon:** 25%
-    *   **Rare:** 12%
-    *   **Legendary:** 3%
+Spirits are the core of a familiar. They possess a Type and a Rarity.
+*   **Types:** Feline, Canine, Winged, Goblin, and the rare **Restless**.
+*   **Rarity:** Common (60%), Uncommon (25%), Rare (12%), Legendary (3%).
 
 ---
 
-## ✨ Familiars & Rituals
+## ✨ Familiars & Leveling
 
 ### The Creation Formula
-Players use the `/ritual` command to combine ingredients into a permanent familiar.
-*   **Standard Recipe:** 1 Spirit + X matching Essences.
-*   **Restless Recipe:** 1 Restless Spirit + X matching Essences + **Arcane Essence Infusion** (5-25 based on rarity).
+Players use the `/ritual` command to combine 1 Spirit with matching Essences.
+*   **Costs:** Common (10), Uncommon (20), Rare (40), Legendary (80).
+*   **Restless:** Requires an additional infusion of **Arcane Essence** (5-25).
 
-**Cost Table (Essences):**
-| Rarity | Base Cost | Arcane Bonus (Restless only) |
-| :--- | :--- | :--- |
-| **Common** | 10 | +5 |
-| **Uncommon** | 20 | +10 |
-| **Rare** | 40 | +15 |
-| **Legendary** | 80 | +25 |
-
-### Dynamic Naming
-Familiars are named based on their ingredients: **`[Essence Adjective]` + `[Spirit Noun]`**.
-*   *Example:* A Legendary Fire Canine might be named **"Inferno Alpha-Predator."**
-*   *Example:* A Common Arcane Restless might be named **"Mystic Wisp."**
+### Progression
+Familiars gain **XP** through binding items or being **fed** essences.
+*   **Max Level:** 10.
+*   **Growth Rolls:** Each level grants a permanent **+0.5% to +2.0%** bonus to passive trigger chances.
+*   **Unlocks:** New Resonance Modes unlock at Level 5 (**PULSE**) and Level 8 (**ATTRACT**).
 
 ---
 
 ## 🔥 Passive Powers (Resonance)
 
-### Manual Activation
-Passives are not active 24/7. A player must **summon** a familiar and then **ignite its resonance**.
-*   **Method:** `/familiar [name]` -> **Ignite Resonance**.
-*   **Duration:** **4 Hours**.
-*   **Limits:** Players can ignite resonance **2 times per day** across their entire stable.
-*   **Summon Swap:** Summoning a different familiar immediately ends the active resonance of the previous one.
-
-### Passive Effects
-*   **ECHO Mode (Default):** A % chance to get an extra essence of the **same type** when you bind one.
-*   **PULSE Mode:** A % chance to get an extra essence of a **random different** element.
-*   **Arcane Bonus:** Arcane familiars can double **ANY** type and have a **+10% flat bonus** to trigger chances.
-*   **Soul Anchor (Restless only):** If a Restless familiar is resonating, there is a **20-50% chance** to save a fading spirit for the server, extending its life by 30 seconds.
-
-**Trigger Chances (By Rarity):**
-*   **Common:** 8% | **Uncommon:** 15% | **Rare:** 25% | **Legendary:** 40%
+Passives are activated via the `/familiar` command and last for **4 hours**.
+*   **ECHO (Lv. 1):** Chance to double matching captured essences.
+*   **PULSE (Lv. 5):** Chance to gain a random different essence.
+*   **ATTRACT (Lv. 8):** Chance to gain a specific, chosen element.
+*   **Soul Anchor (Restless only):** Resonating Restless familiars have a chance to save fading spirits for the server.
 
 ---
 
-## 🕯️ Spectral Incense (Lures)
-Players can burn stored minutes to bypass the random spawn timer.
-*   **Essence Incense:** 100% Essence spawn every 60s.
-*   **Spirit Incense:** 100% Spirit spawn every 60s.
-*   **Pure Incense:** 100% spawn of a **specifically chosen element** every 60s.
+## 🤝 Social & The Well
 
----
-
-## 🤝 Social & Cleanup Systems
-
-### Social Taxes
-*   **Gifting (`/bestow`):** Sender pays a 2% essence fee (or spirit fee based on rarity).
-*   **Trading (`/transmute`):** Recipient pays a 5% essence fee (or spirit fee based on rarity).
+### The Well of Souls
+All ritual fees from gifting and trading are collected into a community pot.
+*   **Surge Trigger:** When the Well reaches **1,000 essences**, it triggers a **Prismatic Surge** (8 rapid spawns).
+*   **Tax Rate:** Standardized **3% fee** on all essences gifted or traded.
 
 ### Resonance Surges (Releasing)
-Releasing items isn't just deletion; it creates a server-wide event.
-*   **Spirit Release:** 30% chance to respawn the spirit / 70% chance to spawn 3 essences.
-*   **Familiar Release:** Spawns the original spirit **and** 5 random essences in a series.
-*   **The Catch:** The player who released the item is blacklisted from capturing the resulting spawns.
+Releasing items triggers immediate spawns for the server. The releaser is blacklisted from these spawns.
 
 ---
 
@@ -108,13 +76,15 @@ Releasing items isn't just deletion; it creates a server-wide event.
 
 | Command | Usage |
 | :--- | :--- |
+| `/help` | Interactive guide to all game systems. |
 | `/inventory` | View loot, spirits, and stored Incense minutes. |
-| `/familiars` | View your stable, status, and resonance timers. |
-| `/familiar [name]` | Open a familiar card to Ignite Resonance or Switch Mode. |
-| `/summon [name]` | Set your active companion. |
+| `/familiars` | View your stable, status, and levels. |
+| `/familiar [id]` | Manage a familiar, Ignite Resonance, or Switch Mode. |
+| `/summon [id]` | Set your active companion. |
 | `/ritual` | Create a new familiar. |
-| `/incense` | Burn stored time to attract specific energies. |
-| `/transmute` | Trade with another player using a secure UI. |
+| `/feed` | Burn essences to give XP to your familiar. |
+| `/vault` | Check the progress of the Well of Souls. |
+| `/donate` | Manually contribute essences to the Well. |
+| `/transmute` | Trade with another player. |
 | `/bestow` | Gift items to another player. |
-| `/release-spirit` | Delete a spirit to trigger a Resonance Surge. |
-| `/release-familiar`| Delete a familiar to trigger a Prismatic Surge. |
+| `/ritual-guide` | Quick reference for costs and rules. |

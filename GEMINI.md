@@ -15,8 +15,9 @@ A Discord-based creature collection and ritual game where players capture mystic
 *   **Language:** Python 3.12
 *   **Library:** discord.py (Latest with Slash Commands & Interactive UI)
 *   **Database:** PostgreSQL (via SQLAlchemy 2.x Async)
+*   **Migrations:** **Alembic** (Versioned schema management)
 *   **Deployment:** Docker + docker-compose
-*   **ORM:** Declarative Base with Mapped Type Hints
+*   **ORM:** Declarative Base with Mapped Type Hints & Enums
 
 ---
 
@@ -77,7 +78,7 @@ A Discord-based creature collection and ritual game where players capture mystic
     *   **Arcane:** Universal Resonance (doubles ANY type) + Server Timer Bonus.
     *   **Restless:** Soul Anchor (% chance to save fading spirits for the server).
 
-### 5. Social Systems
+### 6. Social & Guidance Systems
 *   **The Well of Souls (Guild Pot):** 
     *   Taxes from gifting and trading are collected into a community pot (viewable via `/vault`).
     *   **`/donate`:** Voluntarily contribute essences to the Well to speed up the next Surge.
@@ -89,6 +90,8 @@ A Discord-based creature collection and ritual game where players capture mystic
     *   **UI:** "Cat Bot" style interactive buttons and modals.
     *   **Tax:** **Recipient** pays 3% essence fee (Min 1) and rarity-based spirit fee to the Well of Souls.
 *   **`/set-attract`:** Set the target element for Level 8+ familiars.
+*   **`/help`:** Interactive Select Menu for game guidance and category deep-dives.
+*   **Onboarding:** Automated milestone tips for first captures and rituals.
 *   **Resonance Surges (Releasing):** Releasing items creates immediate spawns for the server. Releaser is blacklisted from the surge.
 
 ---
@@ -96,17 +99,16 @@ A Discord-based creature collection and ritual game where players capture mystic
 ## 📁 Project Structure
 ```
 bot/
-├── main.py              # Entry point, Events, & Background Tasks
+├── application/         # Orchestration Layer (CaptureManager, RitualManager)
+├── commands/            # Discord Slash Command & Event Cogs
+├── domain/              # Core Game Rules, Enums, & Naming Logic
+├── models/              # Database Schemas (User, Essence, Spirit, Familiar, etc.)
+├── services/            # Low-level Business Logic (Commit-free)
+├── ui/                  # Visual Formatting (EmbedFactory)
+├── utils/               # Technical Helpers (Config, Generic UI components)
 ├── db.py                # Database connection & Session management
-├── migrate.py           # Manual migration script for DB updates
-├── commands/            # Slash Command Cogs (With Autocomplete for Spirits/Familiars)
-├── models/              # Database Schemas (User, Essence, Spirit, Familiar, Encounter, Config, Trade)
-├── services/            # Business Logic (Inventory, Ritual, Encounter, Bestow, Transmute, Passive, Guild, Leveling)
-├── utils/               
-│   ├── constants.py     # Naming banks, Costs, & Image URLs
-│   ├── config.py        # Centralized environment variable management
-│   └── ui.py            # Interactive Discord Views and Modals
-└── tools/               # Developer utility scripts (Asset optimization, Prompting, etc.)
+└── main.py              # Minimal Bot Entry Point
+alembic/                 # Database Migration Versions
 ```
 
 ---
@@ -115,12 +117,12 @@ bot/
 *   **Git:** Always stage, commit, and push changes after completing a batch of requested modifications.
 *   **Documentation:** Keep `GEMINI.md` and all files in `docs/` updated immediately to reflect any architectural, mechanical, or configuration changes.
 *   **Testing:** Verify changes via available test suites or manual reproduction before committing.
+*   **Architecture:** Follow the Domain -> Service -> Application -> Cog hierarchy. Services must not call `session.commit()`.
 
 ---
 
 ## 🔮 Future Vision (Phase 2+)
 *   **Monthly Missions:** A "Battlepass" style system where players complete challenges to earn rewards like Incense.
-*   **Familiar Leveling:** Active familiars grow in power, increasing their passive trigger chances.
 *   **Leaderboards:** Rankings for top collectors and most active hunters.
 *   **Advanced Rituals:** Recipes for even more unique familiar types.
 
@@ -129,3 +131,4 @@ bot/
 ## 📝 Current Action Items
 - [ ] Finalize artwork for Arcane essence and all Spirit types.
 - [ ] Add a leaderboard for top collectors.
+- [ ] Implement automated unit tests for core domain rules.

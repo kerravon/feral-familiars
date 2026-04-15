@@ -111,6 +111,16 @@ bot/
 alembic/                 # Database Migration Versions
 ```
 
+## 🧪 Testing
+The project includes a comprehensive **pytest** suite to ensure game logic remains stable during future expansions.
+*   **Infrastructure:** Uses an in-memory SQLite database for rapid, isolated unit testing.
+*   **Coverage:**
+    *   **Rituals:** Validates resource consumption, stable limits, and dynamic naming.
+    *   **Leveling:** Verifies XP gains, exponential curves, and RNG growth rolls.
+    *   **Passives:** Tests level-locked mode gating and elemental matching logic.
+    *   **Transactions:** Ensures low-level services remain commit-free.
+*   **Command:** Run via `./.venv/bin/pytest tests/`.
+
 ---
 
 ## 🛠 Development Guidelines
@@ -131,4 +141,4 @@ alembic/                 # Database Migration Versions
 ## 📝 Current Action Items
 - [ ] Finalize artwork for Arcane essence and all Spirit types.
 - [ ] Add a leaderboard for top collectors.
-- [ ] Implement automated unit tests for core domain rules.
+- [ ] Expand test suite to cover Surge and Well of Souls logic.

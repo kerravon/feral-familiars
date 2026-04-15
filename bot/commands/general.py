@@ -98,16 +98,27 @@ class GeneralCog(commands.Cog):
             
             # Button logic
             ignite_btn = view.children[1] 
+            now = datetime.now()
+            
+            user = await InventoryService.get_or_create_user(session, interaction.user.id)
+            # Reset daily limit if day has passed
+            if user.last_resonance_reset.date() != now.date():
+                user.daily_resonance_count = 0
+                user.last_resonance_reset = now
+                await session.commit()
+
             if not f.is_active:
                 ignite_btn.disabled = True
                 ignite_btn.label = "Summon First"
-            elif f.last_activated_at and f.last_activated_at.date() == datetime.now().date():
-                if not (f.active_until and datetime.now() < f.active_until):
-                    ignite_btn.disabled = True
-                    ignite_btn.label = "Used Today"
-                else:
-                    ignite_btn.disabled = True
-                    ignite_btn.label = "Resonating..."
+            elif f.active_until and now < f.active_until:
+                ignite_btn.disabled = True
+                ignite_btn.label = "Resonating..."
+            elif f.last_activated_at and f.last_activated_at.date() == now.date():
+                ignite_btn.disabled = True
+                ignite_btn.label = "Used Today"
+            elif user.daily_resonance_count >= 2:
+                ignite_btn.disabled = True
+                ignite_btn.label = "Daily Limit Reached"
 
             await interaction.response.send_message(embed=embed, view=view)
 

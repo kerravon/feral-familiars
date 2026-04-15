@@ -61,6 +61,8 @@ class PassiveService:
         
         # Check if already used TODAY (Familiar-level)
         if familiar.last_activated_at and familiar.last_activated_at.date() == now.date():
+            if familiar.active_until and now < familiar.active_until:
+                return False, f"**{familiar.name}** is already resonating!"
             return False, f"**{familiar.name}** has already resonated today."
 
         familiar.active_until = now + timedelta(hours=4)

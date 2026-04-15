@@ -123,14 +123,52 @@ class GameCog(commands.Cog):
     @app_commands.autocomplete(spirit_id=spirit_autocomplete)
     async def release_spirit(self, interaction: discord.Interaction, spirit_id: int):
         async with AsyncSessionLocal() as session:
+            from sqlalchemy import select
+            from bot.models.familiar import Spirit
+            stmt = select(Spirit).where(Spirit.id == spirit_id, Spirit.user_id == interaction.user.id)
+            res = await session.execute(stmt)
+            spirit = res.scalar_one_or_none()
+            
+            if not spirit:
+                await interaction.response.send_message("Spirit not found.", ephemeral=True)
+                return
+
+            stype, srarity = spirit.type, spirit.rarity
+            
             success = await InventoryService.delete_spirit(session, interaction.user.id, spirit_id)
             if success:
-                # We need to re-fetch or pass info for surge. For simplicity I'll commit and run surge.
                 await session.commit()
-                await interaction.response.send_message(f"🍃 You have released the spirit back into the ether.")
-                # Surge service needs update to handle Enum types better but works for now
+                await interaction.response.send_message(f"🍃 You have released the **{srarity.value.title()} {stype.value} spirit** back into the ether.")
+                asyncio.create_task(SurgeService.trigger_spirit_surge(
+                    self.bot, interaction.channel_id, interaction.guild_id, interaction.user.id, stype, srarity
+                ))
             else:
                 await interaction.response.send_message("❌ Failed to release spirit.", ephemeral=True)
+
+    @app_commands.command(name="release-familiar", description="Release a familiar from your stable. This is permanent!")
+    @app_commands.autocomplete(familiar_id=familiar_autocomplete)
+    async def release_familiar(self, interaction: discord.Interaction, familiar_id: int):
+        async with AsyncSessionLocal() as session:
+            from sqlalchemy import select
+            from bot.models.familiar import Familiar
+            stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == interaction.user.id)
+            res = await session.execute(stmt)
+            f = res.scalar_one_or_none()
+            if not f:
+                await interaction.response.send_message("Familiar not found.", ephemeral=True)
+                return
+            
+            fname, stype, srarity, etype = f.name, f.spirit_type, f.rarity, f.essence_type
+
+            success, result = await RitualService.delete_familiar(session, interaction.user.id, familiar_id)
+            if success:
+                await session.commit()
+                await interaction.response.send_message(f"🕊️ **{fname}** has been released from your stable. Its resonance shatters, scattering energy across the server!")
+                asyncio.create_task(SurgeService.trigger_familiar_surge(
+                    self.bot, interaction.channel_id, interaction.guild_id, interaction.user.id, stype, srarity, etype
+                ))
+            else:
+                await interaction.response.send_message(f"❌ **Release Failed:** {result}", ephemeral=True)
 
     @app_commands.command(name="donate", description="Voluntarily contribute essences to the Well of Souls (Guild Pot).")
     @app_commands.autocomplete(essence_type=essence_autocomplete)

@@ -12,6 +12,23 @@ class TradeCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    async def essence_autocomplete(self, interaction: discord.Interaction, current: str):
+        choices = [
+            discord.app_commands.Choice(name=e.value, value=e.value)
+            for e in EssenceType if current.lower() in e.value.lower()
+        ]
+        return choices[:25]
+
+    async def spirit_autocomplete(self, interaction: discord.Interaction, current: str):
+        from bot.services.inventory_service import InventoryService
+        async with AsyncSessionLocal() as session:
+            spirits = await InventoryService.get_spirits(session, interaction.user.id)
+            choices = [
+                discord.app_commands.Choice(name=f"{s.rarity.value.title()} {s.type.value} (ID: {s.id})", value=s.id)
+                for s in spirits if current.lower() in f"{s.rarity.value} {s.type.value}".lower()
+            ]
+            return choices[:25]
+
     @app_commands.command(name="transmute", description="Initiate a Ritual of Transmutation (Trade) with another player.")
     @app_commands.describe(user="The player you want to trade with")
     async def transmute(self, interaction: discord.Interaction, user: discord.User):
@@ -48,6 +65,7 @@ class TradeCog(commands.Cog):
         amount="Amount of essence to gift (Optional)",
         spirit_id="ID of the spirit to gift (Optional)"
     )
+    @app_commands.autocomplete(tax_payment=essence_autocomplete, essence_type=essence_autocomplete, spirit_id=spirit_autocomplete)
     async def bestow(
         self, 
         interaction: discord.Interaction, 

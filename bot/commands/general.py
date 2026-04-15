@@ -72,7 +72,17 @@ class GeneralCog(commands.Cog):
             embed.set_footer(text="Use /summon [id] to swap active familiars. Use /familiar [id] to ignite resonance.")
             await interaction.response.send_message(embed=embed)
 
+    async def familiar_autocomplete(self, interaction: discord.Interaction, current: str):
+        async with AsyncSessionLocal() as session:
+            familiars = await InventoryService.get_familiars(session, interaction.user.id)
+            choices = [
+                discord.app_commands.Choice(name=f"{f.name} (ID: {f.id})", value=f.id)
+                for f in familiars if current.lower() in f.name.lower()
+            ]
+            return choices[:25]
+
     @discord.app_commands.command(name="familiar", description="View detailed stats and manage a specific familiar.")
+    @discord.app_commands.autocomplete(familiar_id=familiar_autocomplete)
     async def familiar_details(self, interaction: discord.Interaction, familiar_id: int):
         async with AsyncSessionLocal() as session:
             stmt = select(Familiar).where(Familiar.id == familiar_id, Familiar.user_id == interaction.user.id)
@@ -111,7 +121,22 @@ class GeneralCog(commands.Cog):
         view = HelpView()
         await interaction.response.send_message(embed=embed, view=view)
 
+    async def essence_autocomplete(self, interaction: discord.Interaction, current: str):
+        choices = [
+            discord.app_commands.Choice(name=e.value, value=e.value)
+            for e in EssenceType if current.lower() in e.value.lower()
+        ]
+        return choices[:25]
+
+    async def lure_type_autocomplete(self, interaction: discord.Interaction, current: str):
+        choices = [
+            discord.app_commands.Choice(name=l.value.title(), value=l.value)
+            for l in LureType if current.lower() in l.value.lower()
+        ]
+        return choices[:25]
+
     @discord.app_commands.command(name="incense", description="Ignite spectral incense to guarantee spawns in this channel for a set time.")
+    @discord.app_commands.autocomplete(lure_type=lure_type_autocomplete, element=essence_autocomplete)
     async def incense(self, interaction: discord.Interaction, lure_type: str, minutes: int, element: Optional[str] = None):
         try:
             l_type = LureType(lure_type.lower())
